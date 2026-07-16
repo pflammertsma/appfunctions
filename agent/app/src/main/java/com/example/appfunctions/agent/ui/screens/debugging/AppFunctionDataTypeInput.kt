@@ -54,13 +54,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +65,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.key
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -76,6 +73,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.appfunctions.agent.R
+import com.example.appfunctions.agent.ui.layout.AdaptiveInputContainer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -180,8 +178,7 @@ fun AppFunctionDataTypeInput(
             )
 
             if (showSheet) {
-                ModalBottomSheet(
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                AdaptiveInputContainer(
                     onDismissRequest = { showSheet = false },
                 ) {
                     AppFunctionObjectTypeSheetContent(
@@ -227,8 +224,7 @@ fun AppFunctionDataTypeInput(
                 )
 
                 if (showSheet) {
-                    ModalBottomSheet(
-                        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                    AdaptiveInputContainer(
                         onDismissRequest = { showSheet = false },
                     ) {
                         AppFunctionObjectTypeSheetContent(
@@ -275,30 +271,14 @@ fun PrimitiveTextInput(
     modifier: Modifier = Modifier,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
 ) {
-    OutlinedTextField(
+    com.example.appfunctions.agent.ui.components.TvSurfaceTextField(
         value = value,
         onValueChange = onValueChange,
-        label = {
-            Row {
-                Text(label)
-                if (isRequired) {
-                    Text(
-                        text = stringResource(R.string.debugging_required_indicator),
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
-            }
-        },
-        modifier = modifier.height(72.dp).fillMaxWidth(),
-        singleLine = true,
+        placeholder = label,
+        label = if (isRequired) "$label *" else label,
+        modifier = modifier.fillMaxWidth(),
         keyboardOptions = keyboardOptions,
         shape = MaterialTheme.shapes.medium,
-        colors =
-            OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                focusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-            ),
     )
 }
 

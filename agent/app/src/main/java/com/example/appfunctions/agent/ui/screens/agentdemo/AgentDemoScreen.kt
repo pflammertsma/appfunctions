@@ -55,7 +55,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -63,34 +62,21 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -117,7 +103,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.core.graphics.drawable.toBitmap
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.appfunctions.agent.R
@@ -128,7 +114,12 @@ import com.example.appfunctions.agent.data.db.entities.MessageRole
 import com.example.appfunctions.agent.data.db.entities.ThreadEntity
 import com.example.appfunctions.agent.domain.AgentStatus
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
+import com.example.appfunctions.agent.ui.contracts.AgentDemoScreenLayout
+import com.example.appfunctions.agent.ui.layout.FormFactor
+import com.example.appfunctions.agent.ui.layout.rememberFormFactor
+import com.example.appfunctions.agent.ui.mobile.agentdemo.MobileAgentDemoLayout
 import com.example.appfunctions.agent.ui.screens.debugging.LazyExposedDropdownMenu
+import com.example.appfunctions.agent.ui.tv.agentdemo.TvAgentDemoLayout
 import com.mikepenz.markdown.m3.Markdown
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -140,72 +131,25 @@ fun AgentDemoScreen(viewModel: AgentDemoViewModel = hiltViewModel()) {
     AgentDemoContent(uiState = uiState, onEvent = viewModel::onEvent)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgentDemoContent(
     uiState: AgentUiState,
     onEvent: (AgentUiEvent) -> Unit,
     initialSidePanelVisible: Boolean = false,
 ) {
-    val context = LocalContext.current
-    val packageManager = context.packageManager
-    val focusManager = LocalFocusManager.current
-
-    val containerSize = LocalConfiguration.current.screenWidthDp
-    val isWideScreen = containerSize >= 600
-
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(Unit) { focusManager.clearFocus() }
-
-    val content =
-        @Composable {
-            when (uiState) {
-                is AgentUiState.Loading -> {
-                    AgentDemoLoadingScreen()
-                }
-
-                is AgentUiState.Loaded -> {
-                    AgentDemoLoadedScreen(
-                        uiState = uiState,
-                        onEvent = onEvent,
-                        isWideScreen = isWideScreen,
-                        drawerState = drawerState,
-                        scope = scope,
-                        packageManager = packageManager,
-                        initialSidePanelVisible = initialSidePanelVisible,
-                    )
-                }
-            }
+    val formFactor = rememberFormFactor()
+    val layout: AgentDemoScreenLayout =
+        when (formFactor) {
+            FormFactor.TV -> TvAgentDemoLayout
+            FormFactor.WEAR, FormFactor.AUTO, FormFactor.XR, FormFactor.MOBILE -> MobileAgentDemoLayout
         }
 
-    if (isWideScreen) {
-        content()
-    } else {
-        val currentThread = (uiState as? AgentUiState.Loaded)?.currentThread
-        val threads = (uiState as? AgentUiState.Loaded)?.threads ?: emptyList()
-
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
-                ModalDrawerSheet(
-                    drawerContainerColor = MaterialTheme.colorScheme.surface,
-                ) {
-                    ChatHistorySidePanel(
-                        threads = threads,
-                        currentThread = currentThread,
-                        onEvent = { event ->
-                            onEvent(event)
-                            scope.launch { drawerState.close() }
-                        },
-                    )
-                }
-            },
-        ) {
-            content()
-        }
-    }
+    layout.Content(
+        uiState = uiState,
+        onEvent = onEvent,
+        initialSidePanelVisible = initialSidePanelVisible,
+        modifier = Modifier,
+    )
 }
 
 @Composable
@@ -226,6 +170,7 @@ fun AgentDemoLoadedScreen(
     packageManager: PackageManager,
     initialSidePanelVisible: Boolean = false,
 ) {
+    val focusManager = LocalFocusManager.current
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
     var isSidePanelVisible by remember { mutableStateOf(initialSidePanelVisible) }
     var selectedAppPackageName by remember { mutableStateOf<String?>(null) }
@@ -402,43 +347,17 @@ fun AgentDemoLoadedScreen(
 
                 // Input area
                 Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = messageText,
-                        onValueChange = { newValue ->
-                            messageText = newValue
-                            val currentText = newValue.text
+                    com.example.appfunctions.agent.ui.components.TvSurfaceTextField(
+                        value = messageText.text,
+                        placeholder = stringResource(R.string.agent_demo_ask_agent),
+                        onValueChange = { newString ->
+                            messageText = TextFieldValue(newString)
                             if (selectedAppPackageName != null && appMentionRegex != null) {
-                                if (!appMentionRegex.containsMatchIn(currentText)) {
+                                if (!appMentionRegex.containsMatchIn(newString)) {
                                     selectedAppPackageName = null
                                 }
                             }
                         },
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp)
-                                .onPreviewKeyEvent { keyEvent ->
-                                    if (
-                                        (keyEvent.key == Key.Enter || keyEvent.key == Key.NumPadEnter) &&
-                                        keyEvent.type == KeyEventType.KeyDown
-                                    ) {
-                                        sendMessage()
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                },
-                        enabled = uiState.status == AgentStatus.Idle,
-                        shape = CircleShape,
-                        placeholder = { Text(stringResource(R.string.agent_demo_ask_agent)) },
-                        visualTransformation = visualTransformation,
-                        colors =
-                            OutlinedTextFieldDefaults.colors(
-                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
-                                focusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
-                                unfocusedBorderColor = Color.Transparent,
-                                focusedBorderColor = Color.Transparent,
-                            ),
                         trailingIcon = {
                             IconButton(
                                 onClick = sendMessage,
@@ -453,6 +372,7 @@ fun AgentDemoLoadedScreen(
                                 )
                             }
                         },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                     )
 
                     if (showAutocomplete && filteredApps.isNotEmpty()) {
