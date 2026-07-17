@@ -257,7 +257,7 @@ class AgentOrchestrator
                         when (val toolResult = executeToolCalls(toolCalls, tools, message)) {
                             is ExecuteToolCallsResult.Success -> {
                                 if (textContent.isNotEmpty()) {
-                                    val finalContent = appendToolCallsHint(textContent, executedToolCalls)
+                                    val finalContent = appendToolCallsHint(textContent, toolCalls, toolResult.toolOutputs)
                                     executedToolCalls.clear()
                                     sendMessageUseCase(
                                         threadId = message.threadId,
@@ -274,7 +274,7 @@ class AgentOrchestrator
                                     toolResult.pendingIntentId,
                                     toolResult.pendingIntent,
                                 )
-                                val finalContent = appendToolCallsHint(textContent, executedToolCalls)
+                                val finalContent = appendToolCallsHint(textContent, toolCalls, emptyList())
                                 executedToolCalls.clear()
                                 sendMessageUseCase(
                                     threadId = message.threadId,
@@ -293,7 +293,7 @@ class AgentOrchestrator
                         }
                     } else {
                         if (textContent.isNotEmpty()) {
-                            val finalContent = appendToolCallsHint(textContent, executedToolCalls)
+                            val finalContent = appendToolCallsHint(textContent, toolCalls, emptyList())
                             executedToolCalls.clear()
                             sendMessageUseCase(
                                 threadId = message.threadId,
@@ -319,15 +319,20 @@ class AgentOrchestrator
         private fun appendToolCallsHint(
             textContent: String,
             toolCalls: List<LlmResponsePart.ToolCall>,
+            toolOutputs: List<ToolOutput>,
         ): String {
             if (toolCalls.isEmpty()) return textContent
             val sb = java.lang.StringBuilder(textContent)
             for (toolCall in toolCalls) {
                 try {
+                    val output = toolOutputs.find { it.callId == toolCall.callId }
                     val json = org.json.JSONObject().apply {
                         put("package", toolCall.packageName)
                         put("function", toolCall.functionId)
                         put("args", org.json.JSONObject(toolCall.arguments))
+                        if (output != null) {
+                            put("response", output.result)
+                        }
                     }
                     sb.append(" @@AppFunctionCall:${json}@@")
                 } catch (e: Exception) {

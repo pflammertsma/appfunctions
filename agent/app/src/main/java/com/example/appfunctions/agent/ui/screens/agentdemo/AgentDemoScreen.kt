@@ -1413,6 +1413,7 @@ data class ParsedAppFunctionCall(
     val packageName: String,
     val functionId: String,
     val arguments: Map<String, Any?>,
+    val response: String?,
 )
 
 fun parseMessageContent(content: String): Pair<String, List<ParsedAppFunctionCall>> {
@@ -1436,7 +1437,8 @@ fun parseMessageContent(content: String): Pair<String, List<ParsedAppFunctionCal
                     argsMap[key] = argsJson.get(key)
                 }
             }
-            calls.add(ParsedAppFunctionCall(packageName, functionId, argsMap))
+            val responseStr = if (json.has("response")) json.getString("response") else null
+            calls.add(ParsedAppFunctionCall(packageName, functionId, argsMap, responseStr))
         } catch (e: Exception) {
             android.util.Log.e("AgentDemoScreen", "Error parsing AppFunctionCall tag", e)
         }
@@ -1474,18 +1476,13 @@ fun AppFunctionCallHintCard(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "AppFunction Invoked",
+                    text = "AppFunction Invoked: $appLabel (${call.packageName})",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "App: $appLabel (${call.packageName})",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
             Text(
                 text = "Function: ${call.functionId}",
                 style = MaterialTheme.typography.bodySmall,
@@ -1496,7 +1493,18 @@ fun AppFunctionCallHintCard(
                 Text(
                     text = "Parameters: $argsStr",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+            }
+            if (!call.response.isNullOrEmpty()) {
+                Text(
+                    text = "Response: ${call.response}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
         }
