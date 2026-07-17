@@ -80,6 +80,8 @@ fi
 
 echo "🛑 Stopping any existing AppFunction Testing Agent instances..."
 $ADB shell am force-stop "$PACKAGE_NAME"
+$ADB shell pkill -f "ShellIdentityInstrumentation" 2>/dev/null || true
+sleep 1
 
 echo "🚀 Starting AppFunction Testing Agent via ShellIdentityInstrumentation..."
 # Run in background with -w to ensure UiAutomation is available

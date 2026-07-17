@@ -69,8 +69,16 @@ class DebuggingViewModel
             emptyMap()
 
         init {
-            loadInstalledApps()
-            loadAppFunctions()
+            _uiState.update { it.copy(isLoading = true) }
+            viewModelScope.launch {
+                allInstalledApps = getInstalledAppsUseCase()
+                getAppFunctionsUseCase().collect { appFunctionsMap ->
+                    allAppFunctions = appFunctionsMap
+                    _uiState.update { state ->
+                        state.copy(filteredApps = filterApps(state.searchQuery), isLoading = false)
+                    }
+                }
+            }
             observePinnedApps()
         }
 
@@ -83,27 +91,9 @@ class DebuggingViewModel
             }
         }
 
-        private fun loadAppFunctions() {
-            viewModelScope.launch {
-                _uiState.update { it.copy(isLoading = true) }
-                getAppFunctionsUseCase().collect { appFunctionsMap ->
-                    allAppFunctions = appFunctionsMap
-                    updateAppsGroupState()
-                }
-            }
-        }
-
-        private fun loadInstalledApps() {
-            viewModelScope.launch {
-                val apps = getInstalledAppsUseCase()
-                allInstalledApps = apps
-                updateAppsGroupState()
-            }
-        }
-
         private fun updateAppsGroupState() {
             _uiState.update { state ->
-                state.copy(filteredApps = filterApps(state.searchQuery), isLoading = false)
+                state.copy(filteredApps = filterApps(state.searchQuery))
             }
         }
 
@@ -111,7 +101,7 @@ class DebuggingViewModel
         fun onAppSelected(appInfo: AppInfo) {
             val functions =
                 allAppFunctions.entries.find { it.key.packageName == appInfo.packageName }?.value
-            if (functions == null) {
+            if (functions.isNullOrEmpty()) {
                 runTroubleshooting(appInfo.packageName)
             } else {
                 _uiState.update { state ->
@@ -122,6 +112,10 @@ class DebuggingViewModel
                     )
                 }
             }
+        }
+
+        fun onToastShown() {
+            _uiState.update { it.copy(toastMessage = null) }
         }
 
         fun onClearSelectedApp() {
@@ -336,7 +330,7 @@ class DebuggingViewModel
                 buildList {
                     val filteredPinned = pinnedApps.filter { it.label.contains(query, ignoreCase = true) }
                     if (filteredPinned.isNotEmpty()) {
-                        add(AppSection(Resources.ID_NULL, filteredPinned, true))
+                        add(AppSection(R.string.debugging_pinned_apps, filteredPinned, true))
                     }
 
                     val filteredSupported =

@@ -17,6 +17,8 @@ package com.example.appfunctions.agent.ui.screens.debugging
 
 import android.app.PendingIntent
 import android.content.res.Resources
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import androidx.appfunctions.metadata.AppFunctionMetadata
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -96,6 +98,14 @@ import com.example.appfunctions.agent.ui.tv.debugging.TvDebuggingLayout
 @Composable
 fun DebuggingScreen(viewModel: DebuggingViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    LaunchedEffect(uiState.toastMessage) {
+        uiState.toastMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            viewModel.onToastShown()
+        }
+    }
 
     DebuggingScreenContent(
         uiState = uiState,
