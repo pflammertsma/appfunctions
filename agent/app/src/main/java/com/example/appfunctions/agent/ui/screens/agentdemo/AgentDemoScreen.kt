@@ -38,6 +38,8 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
@@ -469,6 +471,8 @@ fun AgentDemoLoadedScreen(
                             value = messageText.text,
                             placeholder = stringResource(R.string.agent_demo_ask_agent),
                             modifier = Modifier.focusRequester(inputFocusRequester).fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = { sendMessage() }),
                             onValueChange = { newString ->
                                 messageText = TextFieldValue(newString)
                                 if (selectedAppPackageName != null && appMentionRegex != null) {

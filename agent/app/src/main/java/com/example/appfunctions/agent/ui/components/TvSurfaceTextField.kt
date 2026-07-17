@@ -170,9 +170,6 @@ fun TvSurfaceTextField(
                         Key.Enter, Key.NumPadEnter -> {
                             if (keyEvent.type == KeyEventType.KeyDown || keyEvent.type == KeyEventType.KeyUp) {
                                 stopEditing()
-                                // Wait, the default behavior of physical Enter key on a single-line TextField
-                                // is to trigger the onDone action of KeyboardActions. By returning false, we
-                                // let the system propagate the key event down so the TextField fires its IME action.
                             }
                             false
                         }
