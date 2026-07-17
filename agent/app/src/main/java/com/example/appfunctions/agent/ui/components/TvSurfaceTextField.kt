@@ -15,6 +15,7 @@
  */
 package com.example.appfunctions.agent.ui.components
 
+import kotlin.OptIn
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
@@ -23,6 +24,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -61,6 +65,7 @@ import androidx.compose.ui.unit.dp
  * Pressing D-Pad Center (or click) enters editing mode and focuses the underlying OutlinedTextField.
  * Pressing Back or Enter/Done exits editing mode, hides the keyboard, and restores D-Pad navigation.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TvSurfaceTextField(
     value: String,
@@ -79,6 +84,9 @@ fun TvSurfaceTextField(
     val textFieldFocusRequester = remember { FocusRequester() }
     val surfaceFocusRequester = remember { FocusRequester() }
 
+    val isImeVisible = WindowInsets.isImeVisible
+    var keyboardHasShown by remember(isEditing) { mutableStateOf(false) }
+
     fun stopEditing() {
         isEditing = false
         keyboardController?.hide()
@@ -94,6 +102,14 @@ fun TvSurfaceTextField(
             textFieldFocusRequester.requestFocus()
         } else if (wasEditing) {
             surfaceFocusRequester.requestFocus()
+        }
+    }
+
+    LaunchedEffect(isImeVisible) {
+        if (isImeVisible) {
+            keyboardHasShown = true
+        } else if (keyboardHasShown && isEditing) {
+            stopEditing()
         }
     }
 

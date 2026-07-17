@@ -85,7 +85,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.Color
@@ -196,6 +199,15 @@ fun AgentDemoLoadedScreen(
     var selectedAppPackageName by remember { mutableStateOf<String?>(null) }
     val isTv = rememberFormFactor() == FormFactor.TV
     var showHistoryDialog by remember { mutableStateOf(false) }
+
+    val inputFocusRequester = remember { FocusRequester() }
+
+    if (isTv) {
+        LaunchedEffect(Unit) {
+            delay(100)
+            inputFocusRequester.requestFocus()
+        }
+    }
 
     val chipBgColor = MaterialTheme.colorScheme.primaryContainer
     val chipTextColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -460,6 +472,7 @@ fun AgentDemoLoadedScreen(
                         com.example.appfunctions.agent.ui.components.TvSurfaceTextField(
                             value = messageText.text,
                             placeholder = stringResource(R.string.agent_demo_ask_agent),
+                            modifier = Modifier.focusRequester(inputFocusRequester).fillMaxWidth(),
                             onValueChange = { newString ->
                                 messageText = TextFieldValue(newString)
                                 if (selectedAppPackageName != null && appMentionRegex != null) {
@@ -484,7 +497,6 @@ fun AgentDemoLoadedScreen(
                                     }
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth(),
                         )
 
                         if (showAutocomplete && filteredApps.isNotEmpty()) {
