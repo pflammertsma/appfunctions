@@ -71,6 +71,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.focus.FocusRequester
@@ -580,7 +581,7 @@ private fun TvFunctionListScreen(
                             )
 
                             LazyColumn(
-                                contentPadding = PaddingValues(bottom = 24.dp),
+                                contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp),
                                 modifier = Modifier.fillMaxSize(),
                             ) {
@@ -601,6 +602,7 @@ private fun TvFunctionListScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .scale(scale)
+                                        .zIndex(if (isFunctionFocused) 1f else 0f)
                                         .then(
                                             if (isTargetFunction) Modifier.focusRequester(targetItemFocusRequester)
                                             else if (isFirstItem) Modifier.focusRequester(firstItemFocusRequester)
@@ -778,7 +780,7 @@ private fun TvFunctionExecutionScreen(
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 16.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
             ) {
                 columnItemsIndexed(
                     items = function.parameters,
@@ -828,9 +830,12 @@ private fun TvFunctionExecutionScreen(
                     }
 
                     if (isArray) {
+                        var isItemFocused by remember { mutableStateOf(false) }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .onFocusChanged { isItemFocused = it.hasFocus }
+                                .zIndex(if (isItemFocused) 1f else 0f)
                                 .then(if (index == 0) Modifier.focusRequester(firstParamFocusRequester) else Modifier),
                         ) {
                             AppFunctionDataTypeInput(
@@ -847,8 +852,12 @@ private fun TvFunctionExecutionScreen(
                             )
                         }
                     } else {
+                        var isItemFocused by remember { mutableStateOf(false) }
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .onFocusChanged { isItemFocused = it.hasFocus }
+                                .zIndex(if (isItemFocused) 1f else 0f),
                             verticalAlignment = Alignment.Top,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
