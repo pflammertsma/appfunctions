@@ -21,14 +21,14 @@ An interactive chat interface where you can evaluate AppFunctions using natural 
 
 | Mobile | Android TV |
 | :---: | :---: |
-| ![Mobile Agent Demo](docs/images/mobile_demo.png) | ![TV Agent Demo](docs/images/tv_screenshot.png) |
+| <img src="docs/images/mobile_demo.png" height="450" alt="Mobile Agent Demo"> | <img src="docs/images/tv_screenshot.png" height="450" alt="TV Agent Demo"> |
 
 #### 2. Manual Debugging (Function invocation)
 A deterministic testing interface that discovers installed apps and their registered AppFunctions, allowing you to fill in parameters and invoke them manually.
 
-| Mobile Debugging |
-| :---: |
-| ![Mobile Debugging](docs/images/mobile_debugging.png) |
+| Mobile | Android TV |
+| :---: | :---: |
+| <img src="docs/images/mobile_debugging.png" height="450" alt="Mobile Debugging"> | <img src="docs/images/tv_debugging.png" height="450" alt="TV Debugging"> |
 
 ## Building and Running
 
