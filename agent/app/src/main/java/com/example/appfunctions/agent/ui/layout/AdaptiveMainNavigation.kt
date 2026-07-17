@@ -25,7 +25,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -85,37 +87,42 @@ fun AdaptiveMainNavigation(
                 .fillMaxSize()
                 .consumeWindowInsets(WindowInsets(0, 0, 0, 0)),
             drawerContent = { _ ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .padding(horizontal = 12.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.Center,
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.fillMaxHeight(),
                 ) {
-                    items.forEachIndexed { index, screen ->
-                        val isSelected =
-                            currentDestination?.hierarchy?.any {
-                                it.route?.startsWith(screen) == true
-                            } == true
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(horizontal = 12.dp, vertical = 16.dp),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        items.forEachIndexed { index, screen ->
+                            val isSelected =
+                                currentDestination?.hierarchy?.any {
+                                    it.route?.startsWith(screen) == true
+                                } == true
 
-                        NavigationDrawerItem(
-                            selected = isSelected,
-                            onClick = {
-                                navController.navigate(screen) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                            NavigationDrawerItem(
+                                selected = isSelected,
+                                onClick = {
+                                    navController.navigate(screen) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            leadingContent = {
-                                Icon(icons[index], contentDescription = labels[index])
-                            },
-                            modifier = Modifier
-                                .focusRequester(focusRequesters[index])
-                                .padding(vertical = 4.dp),
-                        ) {
-                            Text(labels[index])
+                                },
+                                leadingContent = {
+                                    Icon(icons[index], contentDescription = labels[index])
+                                },
+                                modifier = Modifier
+                                    .focusRequester(focusRequesters[index])
+                                    .padding(vertical = 4.dp),
+                            ) {
+                                Text(labels[index])
+                            }
                         }
                     }
                 }
