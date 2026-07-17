@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -47,6 +48,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Warning
@@ -117,6 +119,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import androidx.core.graphics.drawable.toBitmap
@@ -190,6 +193,8 @@ fun AgentDemoLoadedScreen(
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
     var isSidePanelVisible by remember { mutableStateOf(initialSidePanelVisible) }
     var selectedAppPackageName by remember { mutableStateOf<String?>(null) }
+    val isTv = rememberFormFactor() == FormFactor.TV
+    var showHistoryDialog by remember { mutableStateOf(false) }
 
     val chipBgColor = MaterialTheme.colorScheme.primaryContainer
     val chipTextColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -213,21 +218,95 @@ fun AgentDemoLoadedScreen(
                             .padding(horizontal = 8.dp),
                     currentThread = uiState.currentThread,
                     onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
-                    onMenuClick = {
-                        if (isWideScreen) {
-                            isSidePanelVisible = !isSidePanelVisible
-                        } else {
-                            scope.launch { drawerState.open() }
-                        }
-                    },
+                    onMenuClick =
+                        if (isTv) null
+                        else {
+                            {
+                                if (isWideScreen) {
+                                    isSidePanelVisible = !isSidePanelVisible
+                                } else {
+                                    scope.launch { drawerState.open() }
+                                }
+                            }
+                        },
                 )
-                IconButton(
-                    onClick = {
-                        onEvent(AgentUiEvent.OnCreateThread(uiState.currentThread.llmModel))
-                    },
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Create Thread")
+                if (isTv) {
+                    var isHistoryFocused by remember { mutableStateOf(false) }
+                    val historyScale by animateFloatAsState(
+                        if (isHistoryFocused) 1.1f else 1.0f,
+                        label = "historyScale",
+                    )
+                    Surface(
+                        onClick = { showHistoryDialog = true },
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 8.dp)
+                                .size(48.dp)
+                                .scale(historyScale)
+                                .onFocusChanged { isHistoryFocused = it.isFocused },
+                        shape = CircleShape,
+                        color =
+                            if (isHistoryFocused) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceBright,
+                        border =
+                            if (isHistoryFocused) {
+                                BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+                            } else null,
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.History,
+                                contentDescription = "History",
+                            )
+                        }
+                    }
+
+                    var isAddFocused by remember { mutableStateOf(false) }
+                    val addScale by animateFloatAsState(
+                        if (isAddFocused) 1.1f else 1.0f,
+                        label = "addScale",
+                    )
+                    Surface(
+                        onClick = {
+                            onEvent(AgentUiEvent.OnCreateThread(uiState.currentThread.llmModel))
+                        },
+                        modifier =
+                            Modifier
+                                .padding(horizontal = 8.dp)
+                                .size(48.dp)
+                                .scale(addScale)
+                                .onFocusChanged { isAddFocused = it.isFocused },
+                        shape = CircleShape,
+                        color =
+                            if (isAddFocused) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceBright,
+                        border =
+                            if (isAddFocused) {
+                                BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+                            } else null,
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Create Thread",
+                            )
+                        }
+                    }
+                } else {
+                    IconButton(
+                        onClick = {
+                            onEvent(AgentUiEvent.OnCreateThread(uiState.currentThread.llmModel))
+                        },
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Create Thread")
+                    }
                 }
             }
         },
@@ -242,7 +321,7 @@ fun AgentDemoLoadedScreen(
                     ),
         ) {
             // Side Panel (only for wide screens)
-            if (isWideScreen) {
+            if (isWideScreen && !isTv) {
                 AnimatedVisibility(
                     visible = isSidePanelVisible,
                     enter = slideInHorizontally() + expandHorizontally(),
@@ -506,6 +585,15 @@ fun AgentDemoLoadedScreen(
             }
         }
     }
+
+    if (showHistoryDialog) {
+        TvHistoryDialog(
+            threads = uiState.threads,
+            currentThread = uiState.currentThread,
+            onThreadSelected = { onEvent(AgentUiEvent.OnThreadSelected(it)) },
+            onDismissRequest = { showHistoryDialog = false }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -514,19 +602,38 @@ fun ModelDropdown(
     modifier: Modifier = Modifier,
     currentThread: ThreadEntity?,
     onModelSelected: (LlmModel) -> Unit,
-    onMenuClick: () -> Unit,
+    onMenuClick: (() -> Unit)? = null,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(
-        modifier = modifier,
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-    ) {
+    val isTv = rememberFormFactor() == FormFactor.TV
+    var showModelDialog by remember { mutableStateOf(false) }
+
+    val models =
+        listOf(
+            LlmModel.GEMINI_3_1_PRO_PREVIEW,
+            LlmModel.GEMINI_3_FLASH_PREVIEW,
+            LlmModel.GEMINI_3_1_FLASH_LITE_PREVIEW,
+        )
+
+    if (isTv) {
+        var isFocused by remember { mutableStateOf(false) }
+        val scale by animateFloatAsState(
+            if (isFocused) 1.02f else 1.0f,
+            label = "modelDropdownScale",
+        )
         Surface(
-            modifier = Modifier.padding(bottom = 8.dp),
+            onClick = { showModelDialog = true },
+            modifier =
+                modifier
+                    .padding(bottom = 8.dp)
+                    .scale(scale)
+                    .onFocusChanged { isFocused = it.isFocused },
             shadowElevation = 2.dp,
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceBright,
+            color =
+                if (isFocused) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surfaceBright,
+            border =
+                if (isFocused) BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary) else null,
         ) {
             val text =
                 currentThread?.llmModel?.modelName
@@ -543,72 +650,128 @@ fun ModelDropdown(
                     Modifier
                         .fillMaxWidth()
                         .height(56.dp)
-                        .padding(start = 4.dp, end = 16.dp),
+                        .padding(start = 16.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onMenuClick) {
-                    Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu")
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.agent_demo_title),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = textColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
-                Row(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .menuAnchor(
-                                ExposedDropdownMenuAnchorType.PrimaryEditable,
-                                enabled = true,
-                            ),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.agent_demo_title),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = text,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = textColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
-                }
+                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
             }
         }
 
-        LazyExposedDropdownMenu(
+        if (showModelDialog) {
+            TvModelDialog(
+                models = models,
+                selectedModel = currentThread?.llmModel,
+                onModelSelected = onModelSelected,
+                onDismissRequest = { showModelDialog = false },
+            )
+        }
+    } else {
+        var expanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(
+            modifier = modifier,
             expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.exposedDropdownSize(),
-            containerColor = MaterialTheme.colorScheme.surfaceBright,
-            shape = RoundedCornerShape(28.dp),
+            onExpandedChange = { expanded = !expanded },
         ) {
-            item {
-                Text(
-                    "--- Gemini ---",
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                )
+            Surface(
+                modifier = Modifier.padding(bottom = 8.dp),
+                shadowElevation = 2.dp,
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceBright,
+            ) {
+                val text =
+                    currentThread?.llmModel?.modelName
+                        ?: stringResource(R.string.agent_demo_select_model_to_create_thread)
+                val textColor =
+                    if (currentThread != null) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    }
+
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .padding(start = 4.dp, end = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (onMenuClick != null) {
+                        IconButton(onClick = onMenuClick) {
+                            Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu")
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.width(12.dp))
+                    }
+                    Row(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .menuAnchor(
+                                    ExposedDropdownMenuAnchorType.PrimaryEditable,
+                                    enabled = true,
+                                ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.agent_demo_title),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = text,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = textColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
+                    }
+                }
             }
-            val models =
-                listOf(
-                    LlmModel.GEMINI_3_1_PRO_PREVIEW,
-                    LlmModel.GEMINI_3_FLASH_PREVIEW,
-                    LlmModel.GEMINI_3_1_FLASH_LITE_PREVIEW,
-                )
-            items(models) { model ->
-                DropdownMenuItem(
-                    text = { Text(model.modelName) },
-                    onClick = {
-                        onModelSelected(model)
-                        expanded = false
-                    },
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                )
+
+            LazyExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.exposedDropdownSize(),
+                containerColor = MaterialTheme.colorScheme.surfaceBright,
+                shape = RoundedCornerShape(28.dp),
+            ) {
+                item {
+                    Text(
+                        "--- Gemini ---",
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+                items(models) { model ->
+                    DropdownMenuItem(
+                        text = { Text(model.modelName) },
+                        onClick = {
+                            onModelSelected(model)
+                            expanded = false
+                        },
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                    )
+                }
             }
         }
     }
@@ -1008,6 +1171,142 @@ fun formatMessageText(
         }
         if (lastIndex < text.length) {
             append(text.substring(lastIndex))
+        }
+    }
+}
+
+@Composable
+fun TvHistoryDialog(
+    threads: List<ThreadEntity>,
+    currentThread: ThreadEntity?,
+    onThreadSelected: (String) -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            modifier =
+                Modifier
+                    .width(400.dp)
+                    .heightIn(max = 400.dp)
+                    .padding(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = stringResource(R.string.agent_demo_chat_history),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    items(threads) { thread ->
+                        val isSelected = thread.threadId == currentThread?.threadId
+                        var isItemFocused by remember { mutableStateOf(false) }
+                        val itemScale by animateFloatAsState(
+                            if (isItemFocused) 1.04f else 1.0f,
+                            label = "itemScale",
+                        )
+                        Surface(
+                            onClick = {
+                                onThreadSelected(thread.threadId)
+                                onDismissRequest()
+                            },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp)
+                                    .scale(itemScale)
+                                    .onFocusChanged { isItemFocused = it.isFocused },
+                            shape = MaterialTheme.shapes.medium,
+                            color =
+                                if (isItemFocused) MaterialTheme.colorScheme.primaryContainer
+                                else if (isSelected) MaterialTheme.colorScheme.surfaceVariant
+                                else MaterialTheme.colorScheme.surface,
+                            border =
+                                if (isItemFocused) {
+                                    BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                                } else null,
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = thread.llmModel.modelName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                                Text(
+                                    text = "ID: ${thread.threadId.take(8)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TvModelDialog(
+    models: List<LlmModel>,
+    selectedModel: LlmModel?,
+    onModelSelected: (LlmModel) -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            modifier =
+                Modifier
+                    .width(400.dp)
+                    .heightIn(max = 300.dp)
+                    .padding(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = "Select Model",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    items(models) { model ->
+                        val isSelected = model == selectedModel
+                        var isItemFocused by remember { mutableStateOf(false) }
+                        val itemScale by animateFloatAsState(
+                            if (isItemFocused) 1.04f else 1.0f,
+                            label = "itemScale",
+                        )
+                        Surface(
+                            onClick = {
+                                onModelSelected(model)
+                                onDismissRequest()
+                            },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp)
+                                    .scale(itemScale)
+                                    .onFocusChanged { isItemFocused = it.isFocused },
+                            shape = MaterialTheme.shapes.medium,
+                            color =
+                                if (isItemFocused) MaterialTheme.colorScheme.primaryContainer
+                                else if (isSelected) MaterialTheme.colorScheme.surfaceVariant
+                                else MaterialTheme.colorScheme.surface,
+                            border =
+                                if (isItemFocused) {
+                                    BorderStroke(2.2.dp, MaterialTheme.colorScheme.primary)
+                                } else null,
+                        ) {
+                            Text(
+                                text = model.modelName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(16.dp),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
