@@ -16,6 +16,7 @@
 package com.example.appfunctions.agent.ui.layout
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -64,6 +65,7 @@ fun AdaptiveMainNavigation(
     if (isTv) {
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val focusRequesters = remember { List(items.size) { FocusRequester() } }
+        val contentFocusRequester = remember { FocusRequester() }
 
         LaunchedEffect(drawerState.currentValue) {
             if (drawerState.currentValue == DrawerValue.Open) {
@@ -112,13 +114,21 @@ fun AdaptiveMainNavigation(
                             NavigationDrawerItem(
                                 selected = isSelected,
                                 onClick = {
-                                    navController.navigate(screen) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                                    if (isSelected) {
+                                        val popped = navController.popBackStack(screen, inclusive = false)
+                                        if (!popped) {
+                                            contentFocusRequester.requestFocus()
                                         }
-                                        launchSingleTop = true
-                                        restoreState = true
+                                    } else {
+                                        navController.navigate(screen) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
                                     }
+                                    drawerState.setValue(DrawerValue.Closed)
                                 },
                                 leadingContent = {
                                     Icon(icons[index], contentDescription = labels[index])
@@ -134,7 +144,13 @@ fun AdaptiveMainNavigation(
                 }
             },
         ) {
-            content(Modifier.fillMaxSize())
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .focusRequester(contentFocusRequester)
+            ) {
+                content(Modifier.fillMaxSize())
+            }
         }
     } else {
         Scaffold(
