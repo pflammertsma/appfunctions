@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.TextRange
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -122,6 +123,12 @@ fun TvSurfaceTextField(
                 )
             )
         }
+        LaunchedEffect(value) {
+            if (tfValue.text != value) {
+                tfValue = tfValue.copy(text = value, selection = TextRange(value.length))
+            }
+        }
+        var tfFocused by remember { mutableStateOf(false) }
         OutlinedTextField(
             value = tfValue,
             onValueChange = { newTfValue ->
@@ -147,6 +154,12 @@ fun TvSurfaceTextField(
             modifier = modifier
                 .defaultMinSize(minHeight = 52.dp)
                 .focusRequester(textFieldFocusRequester)
+                .onFocusChanged { focusState ->
+                    if (tfFocused && !focusState.isFocused) {
+                        stopEditing()
+                    }
+                    tfFocused = focusState.isFocused
+                }
                 .onPreviewKeyEvent { keyEvent ->
                     if (keyEvent.key == Key.Back) {
                         if (keyEvent.type == KeyEventType.KeyDown || keyEvent.type == KeyEventType.KeyUp) {

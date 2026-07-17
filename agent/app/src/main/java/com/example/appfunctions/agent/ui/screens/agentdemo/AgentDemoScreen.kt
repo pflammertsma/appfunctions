@@ -86,6 +86,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -205,6 +206,7 @@ fun AgentDemoLoadedScreen(
     val listState = rememberLazyListState()
     val currentThreadId = uiState.currentThread.threadId
     var hasInitiallyScrolled by remember(currentThreadId) { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(uiState.messages, currentThreadId) {
         if (uiState.messages.isNotEmpty() && !hasInitiallyScrolled) {
@@ -417,7 +419,46 @@ fun AgentDemoLoadedScreen(
                 val isTv = rememberFormFactor() == FormFactor.TV
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 2.dp, vertical = 16.dp)
+                        .onPreviewKeyEvent { keyEvent ->
+                            android.util.Log.d("JetskiDebug", "Row onPreviewKeyEvent: keyEvent=$keyEvent")
+                            if (isTv && keyEvent.type == KeyEventType.KeyDown) {
+                                when (keyEvent.key) {
+                                    Key.DirectionUp -> {
+                                        val moved = focusManager.moveFocus(FocusDirection.Up)
+                                        android.util.Log.d("JetskiDebug", "DirectionUp: moved=$moved")
+                                        if (!moved) {
+                                            android.util.Log.d("JetskiDebug", "DirectionUp: scrolling to ${listState.firstVisibleItemIndex + 1}")
+                                            coroutineScope.launch {
+                                                if (uiState.messages.isNotEmpty()) {
+                                                    val nextIndex = (listState.firstVisibleItemIndex + 1)
+                                                        .coerceAtMost(uiState.messages.size - 1)
+                                                    listState.animateScrollToItem(nextIndex)
+                                                }
+                                            }
+                                            true
+                                        } else false
+                                    }
+                                    Key.DirectionDown -> {
+                                        val moved = focusManager.moveFocus(FocusDirection.Down)
+                                        android.util.Log.d("JetskiDebug", "DirectionDown: moved=$moved")
+                                        if (!moved) {
+                                            android.util.Log.d("JetskiDebug", "DirectionDown: scrolling to ${listState.firstVisibleItemIndex - 1}")
+                                            coroutineScope.launch {
+                                                if (listState.firstVisibleItemIndex > 0) {
+                                                    val nextIndex = listState.firstVisibleItemIndex - 1
+                                                    listState.animateScrollToItem(nextIndex)
+                                                }
+                                            }
+                                            true
+                                        } else false
+                                    }
+                                    else -> false
+                                }
+                            } else false
+                        },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -813,6 +854,7 @@ fun MessageBubble(
     installedApps: List<AppInfo>,
     onConfirmAction: (String) -> Unit,
 ) {
+    val isTv = rememberFormFactor() == FormFactor.TV
     val alignment = if (message.role == MessageRole.USER) Alignment.End else Alignment.Start
     val isError = message.processingStatus == MessageProcessingStatus.FAILED
     val backgroundColor =
@@ -841,7 +883,7 @@ fun MessageBubble(
             shadowElevation = if (message.role == MessageRole.ASSISTANT) 1.dp else 0.dp,
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                SelectionContainer {
+                val bubbleContent = @Composable {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (isError) {
                             Icon(
@@ -952,6 +994,13 @@ fun MessageBubble(
                                 style = typographyStyle,
                             )
                         }
+                    }
+                }
+                if (isTv) {
+                    bubbleContent()
+                } else {
+                    SelectionContainer {
+                        bubbleContent()
                     }
                 }
 
