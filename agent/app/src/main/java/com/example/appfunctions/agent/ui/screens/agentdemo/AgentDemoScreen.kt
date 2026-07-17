@@ -410,6 +410,7 @@ fun AgentDemoLoadedScreen(
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
                         com.example.appfunctions.agent.ui.components.TvSurfaceTextField(
@@ -501,7 +502,7 @@ fun AgentDemoLoadedScreen(
                     }
 
                     if (isTv) {
-                        Spacer(modifier = Modifier.width(12.dp))
+                        val isSendEnabled = messageText.text.isNotBlank()
                         var isSendFocused by remember { mutableStateOf(false) }
                         val sendScale by animateFloatAsState(
                             if (isSendFocused) 1.1f else 1.0f,
@@ -509,15 +510,17 @@ fun AgentDemoLoadedScreen(
                         )
                         Surface(
                             onClick = sendMessage,
-                            enabled = messageText.text.isNotBlank(),
+                            enabled = isSendEnabled,
                             modifier = Modifier
                                 .size(52.dp)
                                 .scale(sendScale)
                                 .onFocusChanged { isSendFocused = it.isFocused },
                             shape = CircleShape,
-                            color =
-                                if (isSendFocused) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.surfaceBright,
+                            color = when {
+                                !isSendEnabled -> MaterialTheme.colorScheme.surfaceBright
+                                isSendFocused -> MaterialTheme.colorScheme.primary
+                                else -> MaterialTheme.colorScheme.primaryContainer
+                            },
                             border =
                                 if (isSendFocused) {
                                     BorderStroke(
@@ -535,9 +538,11 @@ fun AgentDemoLoadedScreen(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Send,
                                     contentDescription = stringResource(R.string.agent_demo_send),
-                                    tint =
-                                        if (isSendFocused) MaterialTheme.colorScheme.onPrimary
-                                        else MaterialTheme.colorScheme.onSurface,
+                                    tint = when {
+                                        !isSendEnabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                        isSendFocused -> MaterialTheme.colorScheme.onPrimary
+                                        else -> MaterialTheme.colorScheme.onPrimaryContainer
+                                    },
                                 )
                             }
                         }
@@ -558,7 +563,6 @@ fun AgentDemoLoadedScreen(
                             onClick = { showHistoryDialog = true },
                             modifier =
                                 Modifier
-                                    .padding(horizontal = 4.dp)
                                     .size(52.dp)
                                     .scale(historyScale)
                                     .onFocusChanged { isHistoryFocused = it.isFocused },
@@ -597,7 +601,6 @@ fun AgentDemoLoadedScreen(
                             },
                             modifier =
                                 Modifier
-                                    .padding(horizontal = 4.dp)
                                     .size(52.dp)
                                     .scale(addScale)
                                     .onFocusChanged { isAddFocused = it.isFocused },
@@ -667,7 +670,6 @@ fun ModelDropdown(
             onClick = { showModelDialog = true },
             modifier =
                 modifier
-                    .padding(horizontal = 4.dp)
                     .size(52.dp)
                     .scale(scale)
                     .onFocusChanged { isFocused = it.isFocused },
