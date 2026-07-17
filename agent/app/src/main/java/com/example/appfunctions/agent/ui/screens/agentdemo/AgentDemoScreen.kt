@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -211,26 +212,20 @@ fun AgentDemoLoadedScreen(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                ModelDropdown(
-                    modifier =
-                        Modifier
+                if (isTv) {
+                    Text(
+                        text = stringResource(R.string.agent_demo_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
                             .weight(1f)
                             .padding(horizontal = 8.dp),
-                    currentThread = uiState.currentThread,
-                    onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
-                    onMenuClick =
-                        if (isTv) null
-                        else {
-                            {
-                                if (isWideScreen) {
-                                    isSidePanelVisible = !isSidePanelVisible
-                                } else {
-                                    scope.launch { drawerState.open() }
-                                }
-                            }
-                        },
-                )
-                if (isTv) {
+                    )
+                    ModelDropdown(
+                        currentThread = uiState.currentThread,
+                        onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
+                    )
+
                     var isHistoryFocused by remember { mutableStateOf(false) }
                     val historyScale by animateFloatAsState(
                         if (isHistoryFocused) 1.1f else 1.0f,
@@ -299,6 +294,21 @@ fun AgentDemoLoadedScreen(
                         }
                     }
                 } else {
+                    ModelDropdown(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp),
+                        currentThread = uiState.currentThread,
+                        onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
+                        onMenuClick = {
+                            if (isWideScreen) {
+                                isSidePanelVisible = !isSidePanelVisible
+                            } else {
+                                scope.launch { drawerState.open() }
+                            }
+                        },
+                    )
                     IconButton(
                         onClick = {
                             onEvent(AgentUiEvent.OnCreateThread(uiState.currentThread.llmModel))
@@ -617,17 +627,17 @@ fun ModelDropdown(
     if (isTv) {
         var isFocused by remember { mutableStateOf(false) }
         val scale by animateFloatAsState(
-            if (isFocused) 1.02f else 1.0f,
+            if (isFocused) 1.1f else 1.0f,
             label = "modelDropdownScale",
         )
         Surface(
             onClick = { showModelDialog = true },
             modifier =
                 modifier
-                    .padding(bottom = 8.dp)
+                    .padding(horizontal = 8.dp)
+                    .size(48.dp)
                     .scale(scale)
                     .onFocusChanged { isFocused = it.isFocused },
-            shadowElevation = 2.dp,
             shape = CircleShape,
             color =
                 if (isFocused) MaterialTheme.colorScheme.primaryContainer
@@ -635,39 +645,14 @@ fun ModelDropdown(
             border =
                 if (isFocused) BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary) else null,
         ) {
-            val text =
-                currentThread?.llmModel?.modelName
-                    ?: stringResource(R.string.agent_demo_select_model_to_create_thread)
-            val textColor =
-                if (currentThread != null) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.error
-                }
-
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .padding(start = 16.dp, end = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize(),
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.agent_demo_title),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = textColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
+                Icon(
+                    imageVector = Icons.Default.SmartToy,
+                    contentDescription = "Select Model",
+                )
             }
         }
 
