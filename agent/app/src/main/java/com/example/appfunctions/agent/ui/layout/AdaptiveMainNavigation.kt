@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -87,8 +88,13 @@ fun AdaptiveMainNavigation(
                 .fillMaxSize()
                 .consumeWindowInsets(WindowInsets(0, 0, 0, 0)),
             drawerContent = { _ ->
+                val drawerColor = if (drawerState.currentValue == DrawerValue.Open) {
+                    MaterialTheme.colorScheme.surface
+                } else {
+                    Color.Transparent
+                }
                 Surface(
-                    color = MaterialTheme.colorScheme.surface,
+                    color = drawerColor,
                     modifier = Modifier.fillMaxHeight(),
                 ) {
                     Column(
