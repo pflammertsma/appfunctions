@@ -54,6 +54,8 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Extension
+import org.json.JSONObject
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -870,6 +872,14 @@ fun MessageBubble(
             else -> MaterialTheme.colorScheme.onSurface
         }
 
+    val parsedData = remember(message.textContent) {
+        parseMessageContent(message.textContent)
+    }
+    val cleanContentText = parsedData.first
+    val parsedCalls = parsedData.second
+
+    android.util.Log.d("JetskiDebug", "MessageBubble: messageId=${message.messageId}, role=${message.role}, cleanText='$cleanContentText', callsSize=${parsedCalls.size}")
+
     Column(
         modifier =
             Modifier
@@ -894,12 +904,12 @@ fun MessageBubble(
                             Spacer(modifier = Modifier.width(8.dp))
                         }
                         val contentText =
-                            if (message.textContent.isEmpty() &&
+                            if (cleanContentText.isEmpty() &&
                                 message.pendingIntentId != null
                             ) {
                                 stringResource(R.string.agent_demo_action_confirmation_needed)
                             } else {
-                                message.textContent
+                                cleanContentText
                             }
                         if (message.role != MessageRole.USER) {
                             Markdown(content = contentText)
@@ -1001,6 +1011,12 @@ fun MessageBubble(
                 } else {
                     SelectionContainer {
                         bubbleContent()
+                    }
+                }
+                if (parsedCalls.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    parsedCalls.forEach { call ->
+                        AppFunctionCallHintCard(call, installedApps)
                     }
                 }
 
@@ -1384,6 +1400,100 @@ fun TvModelDialog(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+data class ParsedAppFunctionCall(
+    val packageName: String,
+    val functionId: String,
+    val arguments: Map<String, Any?>,
+)
+
+fun parseMessageContent(content: String): Pair<String, List<ParsedAppFunctionCall>> {
+    android.util.Log.d("JetskiDebug", "parseMessageContent input: $content")
+    val regex = Regex("@@AppFunctionCall:(.*?)@@")
+    val calls = mutableListOf<ParsedAppFunctionCall>()
+    var cleanText = content
+
+    regex.findAll(content).forEach { match ->
+        try {
+            val jsonStr = match.groupValues[1]
+            val json = JSONObject(jsonStr)
+            val packageName = json.getString("package")
+            val functionId = json.getString("function")
+            val argsJson = json.optJSONObject("args")
+            val argsMap = mutableMapOf<String, Any?>()
+            if (argsJson != null) {
+                val keys = argsJson.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    argsMap[key] = argsJson.get(key)
+                }
+            }
+            calls.add(ParsedAppFunctionCall(packageName, functionId, argsMap))
+        } catch (e: Exception) {
+            android.util.Log.e("AgentDemoScreen", "Error parsing AppFunctionCall tag", e)
+        }
+        cleanText = cleanText.replace(match.value, "")
+    }
+
+    val result = Pair(cleanText.trim(), calls)
+    android.util.Log.d("JetskiDebug", "parseMessageContent output: cleanText='${result.first}', callsSize=${result.second.size}")
+    return result
+}
+
+@Composable
+fun AppFunctionCallHintCard(
+    call: ParsedAppFunctionCall,
+    installedApps: List<AppInfo>,
+    modifier: Modifier = Modifier,
+) {
+    val appLabel = remember(call.packageName, installedApps) {
+        installedApps.find { it.packageName == call.packageName }?.label ?: call.packageName
+    }
+
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier.fillMaxWidth().padding(vertical = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Filled.Extension,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "AppFunction Invoked",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "App: $appLabel (${call.packageName})",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "Function: ${call.functionId}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (call.arguments.isNotEmpty()) {
+                val argsStr = call.arguments.entries.joinToString(", ") { "${it.key}=${it.value}" }
+                Text(
+                    text = "Parameters: $argsStr",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

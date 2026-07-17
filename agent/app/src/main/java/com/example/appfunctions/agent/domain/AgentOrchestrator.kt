@@ -167,6 +167,8 @@ class AgentOrchestrator
             var continueLoop = true
             var currentInput = initialInput
 
+            val executedToolCalls = mutableListOf<LlmResponsePart.ToolCall>()
+
             while (continueLoop) {
                 val llmInput = prepareLlmInput(currentToolOutputs, currentInput)
 
@@ -180,7 +182,7 @@ class AgentOrchestrator
                         modelName = modelName,
                     )
 
-                when (val handleResult = handleLlmResponse(response, message, tools)) {
+                when (val handleResult = handleLlmResponse(response, message, tools, executedToolCalls)) {
                     is HandleResult.Continue -> {
                         currentToolOutputs = handleResult.toolOutputs
                         previousInteractionId = handleResult.interactionId
@@ -232,6 +234,7 @@ class AgentOrchestrator
             response: LlmResponse,
             message: MessageEntity,
             tools: List<AppFunctionMetadata>,
+            executedToolCalls: MutableList<LlmResponsePart.ToolCall>,
         ): HandleResult {
             return when (response) {
                 is LlmResponse.Success -> {
@@ -250,13 +253,16 @@ class AgentOrchestrator
                     val textContent = textParts.joinToString("\n") { it.text }
 
                     if (toolCalls.isNotEmpty()) {
+                        executedToolCalls.addAll(toolCalls)
                         when (val toolResult = executeToolCalls(toolCalls, tools, message)) {
                             is ExecuteToolCallsResult.Success -> {
                                 if (textContent.isNotEmpty()) {
+                                    val finalContent = appendToolCallsHint(textContent, executedToolCalls)
+                                    executedToolCalls.clear()
                                     sendMessageUseCase(
                                         threadId = message.threadId,
                                         role = MessageRole.ASSISTANT,
-                                        textContent = textContent,
+                                        textContent = finalContent,
                                         processingStatus = MessageProcessingStatus.PROCESSED,
                                     )
                                 }
@@ -268,10 +274,12 @@ class AgentOrchestrator
                                     toolResult.pendingIntentId,
                                     toolResult.pendingIntent,
                                 )
+                                val finalContent = appendToolCallsHint(textContent, executedToolCalls)
+                                executedToolCalls.clear()
                                 sendMessageUseCase(
                                     threadId = message.threadId,
                                     role = MessageRole.ASSISTANT,
-                                    textContent = textContent,
+                                    textContent = finalContent,
                                     processingStatus = MessageProcessingStatus.PROCESSED,
                                     pendingIntentId = toolResult.pendingIntentId,
                                 )
@@ -279,15 +287,18 @@ class AgentOrchestrator
                             }
 
                             is ExecuteToolCallsResult.Error -> {
+                                executedToolCalls.clear()
                                 HandleResult.Stop
                             }
                         }
                     } else {
                         if (textContent.isNotEmpty()) {
+                            val finalContent = appendToolCallsHint(textContent, executedToolCalls)
+                            executedToolCalls.clear()
                             sendMessageUseCase(
                                 threadId = message.threadId,
                                 role = MessageRole.ASSISTANT,
-                                textContent = textContent,
+                                textContent = finalContent,
                                 processingStatus = MessageProcessingStatus.PROCESSED,
                             )
                         }
@@ -299,9 +310,31 @@ class AgentOrchestrator
                     Log.e("AgentOrchestrator", "LLM Error: ${response.errorMessage}")
                     completeMessageWithError(message.messageId, message.threadId, response.errorMessage)
                     _status.value = AgentStatus.Idle
+                    executedToolCalls.clear()
                     HandleResult.Stop
                 }
             }
+        }
+
+        private fun appendToolCallsHint(
+            textContent: String,
+            toolCalls: List<LlmResponsePart.ToolCall>,
+        ): String {
+            if (toolCalls.isEmpty()) return textContent
+            val sb = java.lang.StringBuilder(textContent)
+            for (toolCall in toolCalls) {
+                try {
+                    val json = org.json.JSONObject().apply {
+                        put("package", toolCall.packageName)
+                        put("function", toolCall.functionId)
+                        put("args", org.json.JSONObject(toolCall.arguments))
+                    }
+                    sb.append(" @@AppFunctionCall:${json}@@")
+                } catch (e: Exception) {
+                    Log.e("AgentOrchestrator", "Error serializing tool call to JSON", e)
+                }
+            }
+            return sb.toString()
         }
 
         private suspend fun executeToolCalls(
