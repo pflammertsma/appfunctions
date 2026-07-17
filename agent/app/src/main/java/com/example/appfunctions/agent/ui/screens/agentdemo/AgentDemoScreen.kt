@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -201,6 +202,15 @@ fun AgentDemoLoadedScreen(
     var showHistoryDialog by remember { mutableStateOf(false) }
 
     val inputFocusRequester = remember { FocusRequester() }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(uiState.messages.size) {
+        if (uiState.messages.isNotEmpty()) {
+            if (listState.firstVisibleItemIndex == 0) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
 
     if (isTv) {
         LaunchedEffect(Unit) {
@@ -368,6 +378,7 @@ fun AgentDemoLoadedScreen(
             ) {
                 // Messages List
                 LazyColumn(
+                    state = listState,
                     modifier =
                         Modifier
                             .weight(1f)
@@ -402,10 +413,14 @@ fun AgentDemoLoadedScreen(
 
                 val sendMessage = {
                     val textStr = messageText.text
-                    if (textStr.isNotBlank() && uiState.status == AgentStatus.Idle) {
+                    if (textStr.isNotBlank()) {
                         onEvent(AgentUiEvent.OnSendMessage(textStr, selectedAppPackageName))
                         messageText = TextFieldValue("")
                         selectedAppPackageName = null
+                        inputFocusRequester.requestFocus()
+                        scope.launch {
+                            listState.animateScrollToItem(0)
+                        }
                     }
                 }
 
@@ -485,9 +500,7 @@ fun AgentDemoLoadedScreen(
                                 {
                                     IconButton(
                                         onClick = sendMessage,
-                                        enabled =
-                                            messageText.text.isNotBlank() &&
-                                                uiState.status == AgentStatus.Idle,
+                                        enabled = messageText.text.isNotBlank(),
                                     ) {
                                         Icon(
                                             imageVector = Icons.AutoMirrored.Filled.Send,
@@ -568,9 +581,7 @@ fun AgentDemoLoadedScreen(
                         )
                         Surface(
                             onClick = sendMessage,
-                            enabled =
-                                messageText.text.isNotBlank() &&
-                                    uiState.status == AgentStatus.Idle,
+                            enabled = messageText.text.isNotBlank(),
                             modifier = Modifier
                                 .size(52.dp)
                                 .scale(sendScale)
