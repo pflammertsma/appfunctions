@@ -27,6 +27,7 @@ import androidx.appfunctions.metadata.AppFunctionLongTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionMetadata
 import androidx.appfunctions.metadata.AppFunctionObjectTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionReferenceTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionBytesTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionStringTypeMetadata
 import com.example.appfunctions.agent.domain.appfunction.ToolConverter
 import kotlinx.serialization.json.JsonObject
@@ -68,11 +69,20 @@ class GeminiToolConverter
                                             tool.components,
                                             tool.id,
                                         )
+                                    val description = if (parameter.dataType is AppFunctionBytesTypeMetadata) {
+                                        if (parameter.description.isNotEmpty()) {
+                                            "${parameter.description} (Base64 encoded)"
+                                        } else {
+                                            "Base64 encoded bytes"
+                                        }
+                                    } else {
+                                        parameter.description
+                                    }
                                     put(
                                         parameter.name,
                                         buildJsonObject {
                                             typeSchema.forEach { (key, value) -> put(key, value) }
-                                            put(KEY_DESCRIPTION, JsonPrimitive(parameter.description))
+                                            put(KEY_DESCRIPTION, JsonPrimitive(description))
                                         },
                                     )
                                 }
@@ -135,6 +145,8 @@ class GeminiToolConverter
                             )
                         }
                     }
+                is AppFunctionBytesTypeMetadata ->
+                    buildJsonObject { put(KEY_TYPE, JsonPrimitive(VALUE_STRING)) }
                 is AppFunctionLongTypeMetadata ->
                     buildJsonObject { put(KEY_TYPE, JsonPrimitive(VALUE_INTEGER)) }
                 is AppFunctionIntTypeMetadata ->

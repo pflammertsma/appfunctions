@@ -17,6 +17,7 @@ package com.example.appfunctions.agent.ui.screens.debugging
 
 import androidx.appfunctions.metadata.AppFunctionArrayTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionBooleanTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionBytesTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionComponentsMetadata
 import androidx.appfunctions.metadata.AppFunctionDataTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionDoubleTypeMetadata
@@ -134,6 +135,15 @@ fun AppFunctionDataTypeInput(
                     modifier = modifier,
                 )
             }
+        }
+        is AppFunctionBytesTypeMetadata -> {
+            PrimitiveTextInput(
+                value = value as? String ?: "",
+                onValueChange = onValueChange,
+                label = "$label (Base64)",
+                isRequired = isRequired,
+                modifier = modifier,
+            )
         }
         is AppFunctionIntTypeMetadata -> {
             val enumValues = dataType.enumValues
@@ -565,6 +575,7 @@ fun ArrayTypeInput(
 
 fun createDefaultValue(dataType: AppFunctionDataTypeMetadata): Any {
     return when (dataType) {
+        is AppFunctionBytesTypeMetadata -> ""
         is AppFunctionStringTypeMetadata -> ""
         is AppFunctionIntTypeMetadata -> ""
         is AppFunctionBooleanTypeMetadata -> false

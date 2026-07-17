@@ -17,6 +17,7 @@ package com.example.appfunctions.agent.domain.appfunction
 
 import androidx.appfunctions.metadata.AppFunctionArrayTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionBooleanTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionBytesTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionComponentsMetadata
 import androidx.appfunctions.metadata.AppFunctionDataTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionDoubleTypeMetadata
@@ -237,5 +238,24 @@ class ConvertInputToAppFunctionDataUseCaseTest {
         val result = useCase(parameters, components, inputs)
 
         assertEquals(true, result.isFailure)
+    }
+
+    @Test
+    fun invoke_byteArrayParameter_convertsCorrectly() {
+        val parameters =
+            listOf(
+                AppFunctionParameterMetadata("bytes", true, AppFunctionBytesTypeMetadata(false)),
+            )
+        val testBytes = byteArrayOf(10, 20, 30)
+        val base64Input = android.util.Base64.encodeToString(testBytes, android.util.Base64.NO_WRAP)
+        val inputs =
+            mapOf(
+                "bytes" to base64Input,
+            )
+
+        val result = useCase(parameters, components, inputs).getOrThrow()
+
+        val actualBytes = result.getByteArray("bytes")
+        org.junit.Assert.assertArrayEquals(testBytes, actualBytes)
     }
 }

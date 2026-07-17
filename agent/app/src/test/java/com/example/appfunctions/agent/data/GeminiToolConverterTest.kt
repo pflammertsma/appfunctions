@@ -16,6 +16,7 @@
 package com.example.appfunctions.agent.data
 
 import androidx.appfunctions.metadata.AppFunctionArrayTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionBytesTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionComponentsMetadata
 import androidx.appfunctions.metadata.AppFunctionMetadata
 import androidx.appfunctions.metadata.AppFunctionObjectTypeMetadata
@@ -398,6 +399,57 @@ class GeminiToolConverterTest {
                             "type": "string",
                             "enums":["1","2"],
                             "description": "A string parameter"
+                        }
+                    },
+                    "required": ["param1"]
+                }
+            }
+        """,
+            )
+
+        assertEquals(expectedJson, schema)
+    }
+
+    @Test
+    fun convert_byteArrayType_returnsCorrectSchema() {
+        val parameter =
+            AppFunctionParameterMetadata(
+                name = "param1",
+                isRequired = true,
+                dataType = AppFunctionBytesTypeMetadata(isNullable = false),
+                description = "A bytes parameter",
+            )
+        val tool =
+            AppFunctionMetadata(
+                id = "com.example.my_function",
+                packageName = "com.example",
+                isEnabled = true,
+                schema = null,
+                parameters = listOf(parameter),
+                response =
+                    AppFunctionResponseMetadata(
+                        valueType = AppFunctionStringTypeMetadata(isNullable = false),
+                        description = "",
+                    ),
+                components = AppFunctionComponentsMetadata(emptyMap()),
+                description = "Test function",
+                deprecation = null,
+            )
+
+        val schema = converter.convert(tool)
+
+        val expectedJson =
+            Json.parseToJsonElement(
+                """
+            {
+                "name": "com_example_my_function",
+                "description": "Test function",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "param1": {
+                            "type": "string",
+                            "description": "A bytes parameter (Base64 encoded)"
                         }
                     },
                     "required": ["param1"]

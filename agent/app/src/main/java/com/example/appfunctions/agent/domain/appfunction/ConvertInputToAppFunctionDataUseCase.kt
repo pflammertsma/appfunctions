@@ -27,6 +27,7 @@ import androidx.appfunctions.metadata.AppFunctionLongTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionObjectTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionParameterMetadata
 import androidx.appfunctions.metadata.AppFunctionReferenceTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionBytesTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionStringTypeMetadata
 import javax.inject.Inject
 
@@ -95,6 +96,17 @@ class ConvertInputToAppFunctionDataUseCase
                     when (value) {
                         is Number -> builder.setFloat(name, value.toFloat())
                         is String -> if (value.isNotEmpty()) builder.setFloat(name, value.toFloat())
+                    }
+                }
+                is AppFunctionBytesTypeMetadata -> {
+                    when (value) {
+                        is ByteArray -> builder.setByteArray(name, value)
+                        is String -> {
+                            if (value.isNotEmpty()) {
+                                val bytes = android.util.Base64.decode(value, android.util.Base64.NO_WRAP)
+                                builder.setByteArray(name, bytes)
+                            }
+                        }
                     }
                 }
                 is AppFunctionObjectTypeMetadata -> {

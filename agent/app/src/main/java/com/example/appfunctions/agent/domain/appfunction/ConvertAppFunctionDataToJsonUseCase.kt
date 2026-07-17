@@ -16,8 +16,10 @@
 package com.example.appfunctions.agent.domain.appfunction
 
 import android.util.Log
+import android.util.Base64
 import androidx.appfunctions.AppFunctionData
 import androidx.appfunctions.metadata.AppFunctionAllOfTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionBytesTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionArrayTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionBooleanTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionComponentsMetadata
@@ -156,6 +158,14 @@ class ConvertAppFunctionDataToJsonUseCase
         ): Any? {
             return when (dataType) {
                 is AppFunctionStringTypeMetadata -> data.getString(name)
+                is AppFunctionBytesTypeMetadata -> {
+                    val bytes = data.getByteArray(name)
+                    if (bytes != null) {
+                        Base64.encodeToString(bytes, Base64.NO_WRAP)
+                    } else {
+                        null
+                    }
+                }
                 is AppFunctionIntTypeMetadata -> data.getInt(name)
                 is AppFunctionLongTypeMetadata -> data.getLong(name)
                 is AppFunctionBooleanTypeMetadata -> data.getBoolean(name)

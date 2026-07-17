@@ -23,6 +23,7 @@ import androidx.appfunctions.metadata.AppFunctionComponentsMetadata
 import androidx.appfunctions.metadata.AppFunctionIntTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionObjectTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionOneOfTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionBytesTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionReferenceTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionStringTypeMetadata
 import org.json.JSONObject
@@ -453,5 +454,42 @@ class ConvertAppFunctionDataToJsonUseCaseTest {
         val jsonObject = JSONObject(jsonString)
         assertEquals("val1", jsonObject.getString("prop1"))
         assertEquals(123, jsonObject.getInt("prop2"))
+    }
+
+    @Test
+    fun invoke_objectResponseWithByteArray_formatsCorrectly() {
+        val objectType =
+            AppFunctionObjectTypeMetadata(
+                properties =
+                    mapOf(
+                        "bytes" to AppFunctionBytesTypeMetadata(isNullable = false),
+                    ),
+                required = listOf("bytes"),
+                qualifiedName = null,
+                isNullable = false,
+            )
+
+        val testBytes = byteArrayOf(1, 2, 3, 4, 5)
+        val data =
+            AppFunctionData.Builder(objectType, components)
+                .setByteArray("bytes", testBytes)
+                .build()
+
+        val wrapperObjectType =
+            AppFunctionObjectTypeMetadata(
+                qualifiedName = "wrapper",
+                properties = mapOf("root" to objectType),
+                required = listOf("root"),
+                isNullable = false,
+            )
+        val wrapperData =
+            AppFunctionData.Builder(wrapperObjectType, components)
+                .setAppFunctionData("root", data)
+                .build()
+        val jsonString = convertToJsonUseCase("root", wrapperData, objectType, components)
+
+        val jsonObject = JSONObject(jsonString)
+        val expectedBase64 = android.util.Base64.encodeToString(testBytes, android.util.Base64.NO_WRAP)
+        assertEquals(expectedBase64, jsonObject.getString("bytes"))
     }
 }
