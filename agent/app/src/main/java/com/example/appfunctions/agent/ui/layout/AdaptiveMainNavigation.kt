@@ -28,7 +28,11 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -56,6 +60,24 @@ fun AdaptiveMainNavigation(
 
     if (isTv) {
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+        val focusRequesters = remember { List(items.size) { FocusRequester() } }
+
+        LaunchedEffect(drawerState.currentValue) {
+            if (drawerState.currentValue == DrawerValue.Open) {
+                val selectedIndex = items.indexOfFirst { screen ->
+                    currentDestination?.hierarchy?.any {
+                        it.route?.startsWith(screen) == true
+                    } == true
+                }
+                if (selectedIndex != -1) {
+                    try {
+                        focusRequesters[selectedIndex].requestFocus()
+                    } catch (e: Exception) {
+                        // Ignore if not attached yet
+                    }
+                }
+            }
+        }
 
         ModalNavigationDrawer(
             drawerState = drawerState,
@@ -89,7 +111,9 @@ fun AdaptiveMainNavigation(
                             leadingContent = {
                                 Icon(icons[index], contentDescription = labels[index])
                             },
-                            modifier = Modifier.padding(vertical = 4.dp),
+                            modifier = Modifier
+                                .focusRequester(focusRequesters[index])
+                                .padding(vertical = 4.dp),
                         ) {
                             Text(labels[index])
                         }
