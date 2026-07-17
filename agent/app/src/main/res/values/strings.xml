@@ -31,8 +31,9 @@
 
     <!-- Debugging -->
     <string name="debugging_title">Debugging Page</string>
-    <string name="debugging_supported">Supported</string>
-    <string name="debugging_unsupported">Unsupported</string>
+    <string name="debugging_pinned_apps">Pinned Apps</string>
+    <string name="debugging_supported">Apps with AppFunctions</string>
+    <string name="debugging_unsupported">Apps without AppFunctions</string>
     <string name="debugging_search_app">Search App</string>
     <string name="debugging_select_app_prompt">Select an app to see its functions</string>
     <string name="debugging_functions_for_app">Functions for %1$s:</string>

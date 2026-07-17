@@ -15,6 +15,7 @@
  */
 package com.example.appfunctions.agent.ui.tv.agentdemo
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.rememberDrawerState
@@ -24,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.unit.dp
 import com.example.appfunctions.agent.ui.contracts.AgentDemoScreenLayout
 import com.example.appfunctions.agent.ui.screens.agentdemo.AgentDemoLoadedScreen
 import com.example.appfunctions.agent.ui.screens.agentdemo.AgentDemoLoadingScreen
@@ -78,6 +80,7 @@ fun TvAgentDemoContent(
                 scope = scope,
                 packageManager = packageManager,
                 initialSidePanelVisible = initialSidePanelVisible,
+                modifier = modifier.padding(start = 80.dp),
             )
         }
     }

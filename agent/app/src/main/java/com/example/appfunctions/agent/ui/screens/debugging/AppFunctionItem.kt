@@ -66,6 +66,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -101,19 +102,21 @@ fun AppFunctionItem(
 
     val isTv = isTvFormFactor()
     var isCardFocused by remember { mutableStateOf(false) }
+    val cardScale by animateFloatAsState(if (isTv && isCardFocused) 1.02f else 1.0f, label = "cardScale")
 
     Surface(
         modifier =
             modifier
                 .fillMaxWidth()
+                .scale(cardScale)
                 .onFocusChanged { isCardFocused = it.hasFocus },
-        tonalElevation = tonalElevation,
+        tonalElevation = if (isTv && isCardFocused) 8.dp else tonalElevation,
         shadowElevation = shadowElevation,
         shape = MaterialTheme.shapes.large,
-        color = surfaceColor,
+        color = if (isTv && isCardFocused) MaterialTheme.colorScheme.surfaceBright else surfaceColor,
         border =
             if (isTv && isCardFocused) {
-                BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                BorderStroke(3.dp, MaterialTheme.colorScheme.primary)
             } else {
                 BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             },
@@ -272,20 +275,37 @@ fun AppFunctionItem(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = { onInvoke(inputValues) },
-                        modifier = Modifier.height(48.dp).fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(),
-                        enabled = function.isEnabled,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 4.dp),
-                        )
-                        Text(
-                            text = stringResource(R.string.debugging_invoke),
-                        )
+                    if (isTv) {
+                        androidx.tv.material3.Button(
+                            onClick = { onInvoke(inputValues) },
+                            modifier = Modifier.height(48.dp).fillMaxWidth(),
+                            enabled = function.isEnabled,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = 4.dp),
+                            )
+                            Text(
+                                text = stringResource(R.string.debugging_invoke),
+                            )
+                        }
+                    } else {
+                        Button(
+                            onClick = { onInvoke(inputValues) },
+                            modifier = Modifier.height(48.dp).fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(),
+                            enabled = function.isEnabled,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.padding(end = 4.dp),
+                            )
+                            Text(
+                                text = stringResource(R.string.debugging_invoke),
+                            )
+                        }
                     }
                 }
             }
