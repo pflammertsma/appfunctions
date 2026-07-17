@@ -243,78 +243,6 @@ fun AgentDemoLoadedScreen(
                             .weight(1f)
                             .padding(horizontal = 8.dp),
                     )
-                    ModelDropdown(
-                        currentThread = uiState.currentThread,
-                        onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
-                    )
-
-                    var isHistoryFocused by remember { mutableStateOf(false) }
-                    val historyScale by animateFloatAsState(
-                        if (isHistoryFocused) 1.1f else 1.0f,
-                        label = "historyScale",
-                    )
-                    Surface(
-                        onClick = { showHistoryDialog = true },
-                        modifier =
-                            Modifier
-                                .padding(horizontal = 8.dp)
-                                .size(48.dp)
-                                .scale(historyScale)
-                                .onFocusChanged { isHistoryFocused = it.isFocused },
-                        shape = CircleShape,
-                        color =
-                            if (isHistoryFocused) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceBright,
-                        border =
-                            if (isHistoryFocused) {
-                                BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
-                            } else null,
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize(),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.History,
-                                contentDescription = "History",
-                            )
-                        }
-                    }
-
-                    var isAddFocused by remember { mutableStateOf(false) }
-                    val addScale by animateFloatAsState(
-                        if (isAddFocused) 1.1f else 1.0f,
-                        label = "addScale",
-                    )
-                    Surface(
-                        onClick = {
-                            onEvent(AgentUiEvent.OnCreateThread(uiState.currentThread.llmModel))
-                        },
-                        modifier =
-                            Modifier
-                                .padding(horizontal = 8.dp)
-                                .size(48.dp)
-                                .scale(addScale)
-                                .onFocusChanged { isAddFocused = it.isFocused },
-                        shape = CircleShape,
-                        color =
-                            if (isAddFocused) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceBright,
-                        border =
-                            if (isAddFocused) {
-                                BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
-                            } else null,
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier.fillMaxSize(),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "Create Thread",
-                            )
-                        }
-                    }
                 } else {
                     ModelDropdown(
                         modifier =
@@ -613,6 +541,88 @@ fun AgentDemoLoadedScreen(
                                 )
                             }
                         }
+
+                        // Model Dropdown
+                        ModelDropdown(
+                            currentThread = uiState.currentThread,
+                            onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
+                        )
+
+                        // History Button
+                        var isHistoryFocused by remember { mutableStateOf(false) }
+                        val historyScale by animateFloatAsState(
+                            if (isHistoryFocused) 1.1f else 1.0f,
+                            label = "historyScale",
+                        )
+                        Surface(
+                            onClick = { showHistoryDialog = true },
+                            modifier =
+                                Modifier
+                                    .padding(horizontal = 4.dp)
+                                    .size(52.dp)
+                                    .scale(historyScale)
+                                    .onFocusChanged { isHistoryFocused = it.isFocused },
+                            shape = CircleShape,
+                            color =
+                                if (isHistoryFocused) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceBright,
+                            border =
+                                if (isHistoryFocused) {
+                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+                                } else null,
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize(),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.History,
+                                    contentDescription = "History",
+                                    tint =
+                                        if (isHistoryFocused) MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
+
+                        // Add Button
+                        var isAddFocused by remember { mutableStateOf(false) }
+                        val addScale by animateFloatAsState(
+                            if (isAddFocused) 1.1f else 1.0f,
+                            label = "addScale",
+                        )
+                        Surface(
+                            onClick = {
+                                onEvent(AgentUiEvent.OnCreateThread(uiState.currentThread.llmModel))
+                            },
+                            modifier =
+                                Modifier
+                                    .padding(horizontal = 4.dp)
+                                    .size(52.dp)
+                                    .scale(addScale)
+                                    .onFocusChanged { isAddFocused = it.isFocused },
+                            shape = CircleShape,
+                            color =
+                                if (isAddFocused) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceBright,
+                            border =
+                                if (isAddFocused) {
+                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+                                } else null,
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize(),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Create Thread",
+                                    tint =
+                                        if (isAddFocused) MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -657,8 +667,8 @@ fun ModelDropdown(
             onClick = { showModelDialog = true },
             modifier =
                 modifier
-                    .padding(horizontal = 8.dp)
-                    .size(48.dp)
+                    .padding(horizontal = 4.dp)
+                    .size(52.dp)
                     .scale(scale)
                     .onFocusChanged { isFocused = it.isFocused },
             shape = CircleShape,
