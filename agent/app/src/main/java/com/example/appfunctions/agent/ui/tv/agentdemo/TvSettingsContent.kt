@@ -40,18 +40,22 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import com.example.appfunctions.agent.BuildConfig
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.ui.components.TvSurfaceTextField
@@ -81,12 +85,18 @@ fun TvSettingsContent(
     onNavigateToConnectedApps: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val apiKeyFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        delay(100)
+        apiKeyFocusRequester.requestFocus()
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Unspecified,
         topBar = {
             Row(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                modifier = Modifier.padding(start = 80.dp, end = 24.dp, top = 16.dp, bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
@@ -102,6 +112,7 @@ fun TvSettingsContent(
             modifier =
                 Modifier.fillMaxSize()
                     .padding(paddingValues)
+                    .padding(start = 56.dp)
                     .consumeWindowInsets(paddingValues)
                     .imePadding()
                     .verticalScroll(rememberScrollState()),
@@ -126,14 +137,14 @@ fun TvSettingsContent(
                         value = geminiApiKeyState.text.toString(),
                         onValueChange = {},
                         placeholder = stringResource(id = R.string.settings_gemini_api_key),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.focusRequester(apiKeyFocusRequester).fillMaxWidth(),
                     )
                 } else {
                     TvSurfaceTextField(
                         value = geminiApiKeyState.text.toString(),
                         onValueChange = { geminiApiKeyState.setTextAndPlaceCursorAtEnd(it) },
                         placeholder = stringResource(id = R.string.settings_gemini_api_key),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.focusRequester(apiKeyFocusRequester).fillMaxWidth(),
                     )
                 }
             }
