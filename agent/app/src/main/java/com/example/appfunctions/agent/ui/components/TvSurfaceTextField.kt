@@ -78,6 +78,7 @@ fun TvSurfaceTextField(
     singleLine: Boolean = true,
     trailingIcon: @Composable (() -> Unit)? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     shape: Shape = CircleShape,
 ) {
     var isEditing by remember { mutableStateOf(false) }
@@ -141,10 +142,7 @@ fun TvSurfaceTextField(
             placeholder = { Text(placeholder) },
             trailingIcon = trailingIcon,
             keyboardOptions = keyboardOptions,
-            keyboardActions = KeyboardActions(
-                onDone = { stopEditing() },
-                onSearch = { stopEditing() },
-            ),
+            keyboardActions = keyboardActions,
             shape = shape,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
@@ -162,12 +160,24 @@ fun TvSurfaceTextField(
                     tfFocused = focusState.isFocused
                 }
                 .onPreviewKeyEvent { keyEvent ->
-                    if (keyEvent.key == Key.Back) {
-                        if (keyEvent.type == KeyEventType.KeyDown || keyEvent.type == KeyEventType.KeyUp) {
-                            stopEditing()
+                    when (keyEvent.key) {
+                        Key.Back, Key.Escape -> {
+                            if (keyEvent.type == KeyEventType.KeyDown || keyEvent.type == KeyEventType.KeyUp) {
+                                stopEditing()
+                            }
+                            true
                         }
-                        true
-                    } else false
+                        Key.Enter, Key.NumPadEnter -> {
+                            if (keyEvent.type == KeyEventType.KeyDown || keyEvent.type == KeyEventType.KeyUp) {
+                                stopEditing()
+                                // Wait, the default behavior of physical Enter key on a single-line TextField
+                                // is to trigger the onDone action of KeyboardActions. By returning false, we
+                                // let the system propagate the key event down so the TextField fires its IME action.
+                            }
+                            false
+                        }
+                        else -> false
+                    }
                 }
         )
     } else {
