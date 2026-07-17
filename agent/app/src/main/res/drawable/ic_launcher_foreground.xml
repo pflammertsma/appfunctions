@@ -14,28 +14,18 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Outer Glow Circle -->
-    <path
-        android:fillColor="#00E5FF"
-        android:pathData="M54,24 A30,30 0 1,0 54,84 A30,30 0 1,0 54,24 Z"
-        android:fillAlpha="0.15" />
-    
-    <!-- Function 'f' symbol -->
-    <path
-        android:fillColor="#00E676"
-        android:pathData="M40,36 C40,32 44,32 48,32 L52,32 L52,38 L46,38 L46,70 L40,70 L40,38 L34,38 L34,32 L40,32 Z" />
-    
-    <!-- Spark / 'x' symbol -->
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M56,48 L68,60 M68,48 L56,60"
-        android:strokeWidth="5"
-        android:strokeColor="#00E5FF"
-        android:strokeLineCap="round" />
+    <group
+        android:scaleX="3.2"
+        android:scaleY="3.2"
+        android:translateX="15.6"
+        android:translateY="15.6">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M8,3A2,2 0 0,0 6,5V9A2,2 0 0,1 4,11H3V13H4A2,2 0 0,1 6,15V19A2,2 0 0,0 8,21H10V19H8V14A2,2 0 0,0 6,12A2,2 0 0,0 8,10V5H10V3M16,3A2,2 0 0,1 18,5V9A2,2 0 0,0 20,11H21V13H20A2,2 0 0,0 18,15V19A2,2 0 0,1 16,21H14V19H16V14A2,2 0 0,1 18,12A2,2 0 0,1 16,10V5H14V3H16Z" />
+    </group>
 </vector>
