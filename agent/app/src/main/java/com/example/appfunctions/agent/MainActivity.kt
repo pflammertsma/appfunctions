@@ -154,7 +154,7 @@ fun MainScreen(
     ) { contentModifier ->
         NavHost(
             navController = navController,
-            startDestination = "debugging",
+            startDestination = MainActivity.ROUTE_AGENT_DEMO,
             modifier = contentModifier,
         ) {
             composable("debugging") { DebuggingScreen() }

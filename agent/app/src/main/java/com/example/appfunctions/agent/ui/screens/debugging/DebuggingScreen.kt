@@ -16,6 +16,7 @@
 package com.example.appfunctions.agent.ui.screens.debugging
 
 import android.app.PendingIntent
+import android.widget.Toast
 import androidx.appfunctions.metadata.AppFunctionMetadata
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -35,11 +36,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
@@ -57,6 +60,14 @@ import com.example.appfunctions.agent.ui.tv.debugging.TvDebuggingLayout
 @Composable
 fun DebuggingScreen(viewModel: DebuggingViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    LaunchedEffect(uiState.toastMessage) {
+        uiState.toastMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            viewModel.onToastShown()
+        }
+    }
 
     DebuggingScreenContent(
         uiState = uiState,

@@ -17,10 +17,12 @@ package com.example.appfunctions.agent.ui.screens.agentdemo
 
 import android.content.pm.PackageManager
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,12 +35,14 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
@@ -48,7 +52,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -66,16 +72,27 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -99,6 +116,7 @@ import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
@@ -122,6 +140,7 @@ import com.example.appfunctions.agent.ui.screens.debugging.LazyExposedDropdownMe
 import com.example.appfunctions.agent.ui.tv.agentdemo.TvAgentDemoLayout
 import com.mikepenz.markdown.m3.Markdown
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -169,11 +188,42 @@ fun AgentDemoLoadedScreen(
     scope: CoroutineScope,
     packageManager: PackageManager,
     initialSidePanelVisible: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
     var isSidePanelVisible by remember { mutableStateOf(initialSidePanelVisible) }
     var selectedAppPackageName by remember { mutableStateOf<String?>(null) }
+    val isTv = rememberFormFactor() == FormFactor.TV
+    var showHistoryDialog by remember { mutableStateOf(false) }
+
+    val inputFocusRequester = remember { FocusRequester() }
+    val listState = rememberLazyListState()
+    val currentThreadId = uiState.currentThread.threadId
+    var hasInitiallyScrolled by remember(currentThreadId) { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(uiState.messages, currentThreadId) {
+        if (uiState.messages.isNotEmpty() && !hasInitiallyScrolled) {
+            hasInitiallyScrolled = true
+            listState.scrollToItem(0)
+        }
+    }
+
+    LaunchedEffect(uiState.messages.size) {
+        if (uiState.messages.isNotEmpty()) {
+            if (listState.firstVisibleItemIndex == 0) {
+                listState.animateScrollToItem(0)
+            }
+        }
+    }
+
+    if (isTv) {
+        LaunchedEffect(Unit) {
+            delay(100)
+            inputFocusRequester.requestFocus()
+        }
+    }
 
     val chipBgColor = MaterialTheme.colorScheme.primaryContainer
     val chipTextColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -183,35 +233,47 @@ fun AgentDemoLoadedScreen(
         }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         containerColor = Color.Unspecified,
         topBar = {
             Row(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                ModelDropdown(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .padding(horizontal = 8.dp),
-                    currentThread = uiState.currentThread,
-                    onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
-                    onMenuClick = {
-                        if (isWideScreen) {
-                            isSidePanelVisible = !isSidePanelVisible
-                        } else {
-                            scope.launch { drawerState.open() }
-                        }
-                    },
-                )
-                IconButton(
-                    onClick = {
-                        onEvent(AgentUiEvent.OnCreateThread(uiState.currentThread.llmModel))
-                    },
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Create Thread")
+                if (isTv) {
+                    Text(
+                        text = stringResource(R.string.agent_demo_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp),
+                    )
+                } else {
+                    ModelDropdown(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp),
+                        currentThread = uiState.currentThread,
+                        onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
+                        onMenuClick = {
+                            if (isWideScreen) {
+                                isSidePanelVisible = !isSidePanelVisible
+                            } else {
+                                scope.launch { drawerState.open() }
+                            }
+                        },
+                    )
+                    IconButton(
+                        onClick = {
+                            onEvent(AgentUiEvent.OnCreateThread(uiState.currentThread.llmModel))
+                        },
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Create Thread")
+                    }
                 }
             }
         },
@@ -226,7 +288,7 @@ fun AgentDemoLoadedScreen(
                     ),
         ) {
             // Side Panel (only for wide screens)
-            if (isWideScreen) {
+            if (isWideScreen && !isTv) {
                 AnimatedVisibility(
                     visible = isSidePanelVisible,
                     enter = slideInHorizontally() + expandHorizontally(),
@@ -251,6 +313,7 @@ fun AgentDemoLoadedScreen(
             ) {
                 // Messages List
                 LazyColumn(
+                    state = listState,
                     modifier =
                         Modifier
                             .weight(1f)
@@ -285,10 +348,14 @@ fun AgentDemoLoadedScreen(
 
                 val sendMessage = {
                     val textStr = messageText.text
-                    if (textStr.isNotBlank() && uiState.status == AgentStatus.Idle) {
+                    if (textStr.isNotBlank()) {
                         onEvent(AgentUiEvent.OnSendMessage(textStr, selectedAppPackageName))
                         messageText = TextFieldValue("")
                         selectedAppPackageName = null
+                        inputFocusRequester.requestFocus()
+                        scope.launch {
+                            listState.animateScrollToItem(0)
+                        }
                     }
                 }
 
@@ -345,97 +412,315 @@ fun AgentDemoLoadedScreen(
                         }
                     }
 
-                // Input area
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    com.example.appfunctions.agent.ui.components.TvSurfaceTextField(
-                        value = messageText.text,
-                        placeholder = stringResource(R.string.agent_demo_ask_agent),
-                        onValueChange = { newString ->
-                            messageText = TextFieldValue(newString)
-                            if (selectedAppPackageName != null && appMentionRegex != null) {
-                                if (!appMentionRegex.containsMatchIn(newString)) {
-                                    selectedAppPackageName = null
+                val isTv = rememberFormFactor() == FormFactor.TV
+
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 2.dp, vertical = 16.dp)
+                            .onPreviewKeyEvent { keyEvent ->
+                                android.util.Log.d("JetskiDebug", "Row onPreviewKeyEvent: keyEvent=$keyEvent")
+                                if (isTv && keyEvent.type == KeyEventType.KeyDown) {
+                                    when (keyEvent.key) {
+                                        Key.DirectionUp -> {
+                                            val moved = focusManager.moveFocus(FocusDirection.Up)
+                                            android.util.Log.d("JetskiDebug", "DirectionUp: moved=$moved")
+                                            if (!moved) {
+                                                android.util.Log.d(
+                                                    "JetskiDebug",
+                                                    "DirectionUp: scrolling to ${listState.firstVisibleItemIndex + 1}",
+                                                )
+                                                coroutineScope.launch {
+                                                    if (uiState.messages.isNotEmpty()) {
+                                                        val nextIndex =
+                                                            (listState.firstVisibleItemIndex + 1)
+                                                                .coerceAtMost(uiState.messages.size - 1)
+                                                        listState.animateScrollToItem(nextIndex)
+                                                    }
+                                                }
+                                                true
+                                            } else {
+                                                false
+                                            }
+                                        }
+                                        Key.DirectionDown -> {
+                                            val moved = focusManager.moveFocus(FocusDirection.Down)
+                                            android.util.Log.d("JetskiDebug", "DirectionDown: moved=$moved")
+                                            if (!moved) {
+                                                android.util.Log.d(
+                                                    "JetskiDebug",
+                                                    "DirectionDown: scrolling to ${listState.firstVisibleItemIndex - 1}",
+                                                )
+                                                coroutineScope.launch {
+                                                    if (listState.firstVisibleItemIndex > 0) {
+                                                        val nextIndex = listState.firstVisibleItemIndex - 1
+                                                        listState.animateScrollToItem(nextIndex)
+                                                    }
+                                                }
+                                                true
+                                            } else {
+                                                false
+                                            }
+                                        }
+                                        else -> false
+                                    }
+                                } else {
+                                    false
+                                }
+                            },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        com.example.appfunctions.agent.ui.components.TvSurfaceTextField(
+                            value = messageText.text,
+                            placeholder = stringResource(R.string.agent_demo_ask_agent),
+                            modifier = Modifier.focusRequester(inputFocusRequester).fillMaxWidth(),
+                            onValueChange = { newString ->
+                                messageText = TextFieldValue(newString)
+                                if (selectedAppPackageName != null && appMentionRegex != null) {
+                                    if (!appMentionRegex.containsMatchIn(newString)) {
+                                        selectedAppPackageName = null
+                                    }
+                                }
+                            },
+                            trailingIcon =
+                                if (isTv) {
+                                    null
+                                } else {
+                                    {
+                                        IconButton(
+                                            onClick = sendMessage,
+                                            enabled = messageText.text.isNotBlank(),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                                contentDescription =
+                                                    stringResource(R.string.agent_demo_send),
+                                            )
+                                        }
+                                    }
+                                },
+                        )
+
+                        if (showAutocomplete && filteredApps.isNotEmpty()) {
+                            Popup(
+                                popupPositionProvider = popupPositionProvider,
+                                onDismissRequest = {},
+                                properties = PopupProperties(focusable = false),
+                            ) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(0.9f),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                                    colors =
+                                        CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceBright,
+                                        ),
+                                    shape = MaterialTheme.shapes.medium,
+                                ) {
+                                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                        filteredApps.take(5).forEach { app ->
+                                            DropdownMenuItem(
+                                                text = { Text(app.label) },
+                                                onClick = {
+                                                    val currentText = messageText.text
+                                                    val selectionStart = messageText.selection.start
+                                                    val textBeforeCursor =
+                                                        currentText.take(
+                                                            selectionStart,
+                                                        )
+                                                    val textAfterCursor =
+                                                        currentText.drop(
+                                                            selectionStart,
+                                                        )
+                                                    val mentionIndex = textBeforeCursor.lastIndexOf('@')
+                                                    if (mentionIndex >= 0) {
+                                                        val textBeforeMention =
+                                                            textBeforeCursor.substring(
+                                                                0,
+                                                                mentionIndex,
+                                                            )
+                                                        val newText =
+                                                            "$textBeforeMention@${app.label} $textAfterCursor"
+                                                        val newCursorPosition =
+                                                            mentionIndex + app.label.length + 2
+                                                        messageText =
+                                                            TextFieldValue(
+                                                                text = newText,
+                                                                selection =
+                                                                    TextRange(
+                                                                        newCursorPosition,
+                                                                    ),
+                                                            )
+                                                        selectedAppPackageName = app.packageName
+                                                    }
+                                                },
+                                            )
+                                        }
+                                    }
                                 }
                             }
-                        },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = sendMessage,
-                                enabled =
-                                    messageText.text.isNotBlank() &&
-                                        uiState.status == AgentStatus.Idle,
+                        }
+                    }
+
+                    if (isTv) {
+                        val isSendEnabled = messageText.text.isNotBlank()
+                        var isSendFocused by remember { mutableStateOf(false) }
+                        val sendScale by animateFloatAsState(
+                            if (isSendFocused) 1.1f else 1.0f,
+                            label = "sendScale",
+                        )
+                        Surface(
+                            onClick = sendMessage,
+                            enabled = isSendEnabled,
+                            modifier =
+                                Modifier
+                                    .size(52.dp)
+                                    .scale(sendScale)
+                                    .onFocusChanged { isSendFocused = it.isFocused },
+                            shape = CircleShape,
+                            color =
+                                when {
+                                    !isSendEnabled -> MaterialTheme.colorScheme.surfaceBright
+                                    isSendFocused -> MaterialTheme.colorScheme.primary
+                                    else -> MaterialTheme.colorScheme.primaryContainer
+                                },
+                            border =
+                                if (isSendFocused) {
+                                    BorderStroke(
+                                        2.5.dp,
+                                        MaterialTheme.colorScheme.onPrimaryContainer,
+                                    )
+                                } else {
+                                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                },
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize(),
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.Send,
-                                    contentDescription =
-                                        stringResource(R.string.agent_demo_send),
+                                    contentDescription = stringResource(R.string.agent_demo_send),
+                                    tint =
+                                        when {
+                                            !isSendEnabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                            isSendFocused -> MaterialTheme.colorScheme.onPrimary
+                                            else -> MaterialTheme.colorScheme.onPrimaryContainer
+                                        },
                                 )
                             }
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                    )
+                        }
 
-                    if (showAutocomplete && filteredApps.isNotEmpty()) {
-                        Popup(
-                            popupPositionProvider = popupPositionProvider,
-                            onDismissRequest = {},
-                            properties = PopupProperties(focusable = false),
+                        // Model Dropdown
+                        ModelDropdown(
+                            currentThread = uiState.currentThread,
+                            onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
+                        )
+
+                        // History Button
+                        var isHistoryFocused by remember { mutableStateOf(false) }
+                        val historyScale by animateFloatAsState(
+                            if (isHistoryFocused) 1.1f else 1.0f,
+                            label = "historyScale",
+                        )
+                        Surface(
+                            onClick = { showHistoryDialog = true },
+                            modifier =
+                                Modifier
+                                    .size(52.dp)
+                                    .scale(historyScale)
+                                    .onFocusChanged { isHistoryFocused = it.isFocused },
+                            shape = CircleShape,
+                            color =
+                                if (isHistoryFocused) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceBright
+                                },
+                            border =
+                                if (isHistoryFocused) {
+                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+                                } else {
+                                    null
+                                },
                         ) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(0.9f),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                                colors =
-                                    CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceBright,
-                                    ),
-                                shape = MaterialTheme.shapes.medium,
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize(),
                             ) {
-                                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                                    filteredApps.take(5).forEach { app ->
-                                        DropdownMenuItem(
-                                            text = { Text(app.label) },
-                                            onClick = {
-                                                val currentText = messageText.text
-                                                val selectionStart = messageText.selection.start
-                                                val textBeforeCursor =
-                                                    currentText.take(
-                                                        selectionStart,
-                                                    )
-                                                val textAfterCursor =
-                                                    currentText.drop(
-                                                        selectionStart,
-                                                    )
-                                                val mentionIndex = textBeforeCursor.lastIndexOf('@')
-                                                if (mentionIndex >= 0) {
-                                                    val textBeforeMention =
-                                                        textBeforeCursor.substring(
-                                                            0,
-                                                            mentionIndex,
-                                                        )
-                                                    val newText =
-                                                        "$textBeforeMention@${app.label} $textAfterCursor"
-                                                    val newCursorPosition =
-                                                        mentionIndex + app.label.length + 2
-                                                    messageText =
-                                                        TextFieldValue(
-                                                            text = newText,
-                                                            selection =
-                                                                TextRange(
-                                                                    newCursorPosition,
-                                                                ),
-                                                        )
-                                                    selectedAppPackageName = app.packageName
-                                                }
-                                            },
-                                        )
-                                    }
-                                }
+                                Icon(
+                                    imageVector = Icons.Default.History,
+                                    contentDescription = "History",
+                                    tint =
+                                        if (isHistoryFocused) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
+                                )
+                            }
+                        }
+
+                        // Add Button
+                        var isAddFocused by remember { mutableStateOf(false) }
+                        val addScale by animateFloatAsState(
+                            if (isAddFocused) 1.1f else 1.0f,
+                            label = "addScale",
+                        )
+                        Surface(
+                            onClick = {
+                                onEvent(AgentUiEvent.OnCreateThread(uiState.currentThread.llmModel))
+                            },
+                            modifier =
+                                Modifier
+                                    .size(52.dp)
+                                    .scale(addScale)
+                                    .onFocusChanged { isAddFocused = it.isFocused },
+                            shape = CircleShape,
+                            color =
+                                if (isAddFocused) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceBright
+                                },
+                            border =
+                                if (isAddFocused) {
+                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+                                } else {
+                                    null
+                                },
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize(),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Create Thread",
+                                    tint =
+                                        if (isAddFocused) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
+                                )
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    if (showHistoryDialog) {
+        TvHistoryDialog(
+            threads = uiState.threads,
+            currentThread = uiState.currentThread,
+            onThreadSelected = { onEvent(AgentUiEvent.OnThreadSelected(it)) },
+            onDismissRequest = { showHistoryDialog = false },
+        )
     }
 }
 
@@ -445,103 +730,153 @@ fun ModelDropdown(
     modifier: Modifier = Modifier,
     currentThread: ThreadEntity?,
     onModelSelected: (LlmModel) -> Unit,
-    onMenuClick: () -> Unit,
+    onMenuClick: (() -> Unit)? = null,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(
-        modifier = modifier,
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-    ) {
-        Surface(
-            modifier = Modifier.padding(bottom = 8.dp),
-            shadowElevation = 2.dp,
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceBright,
-        ) {
-            val text =
-                currentThread?.llmModel?.modelName
-                    ?: stringResource(R.string.agent_demo_select_model_to_create_thread)
-            val textColor =
-                if (currentThread != null) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.error
-                }
+    val isTv = rememberFormFactor() == FormFactor.TV
+    var showModelDialog by remember { mutableStateOf(false) }
 
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .padding(start = 4.dp, end = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
+    val models =
+        listOf(
+            LlmModel.GEMINI_3_1_PRO_PREVIEW,
+            LlmModel.GEMINI_3_FLASH_PREVIEW,
+            LlmModel.GEMINI_3_1_FLASH_LITE_PREVIEW,
+        )
+
+    if (isTv) {
+        var isFocused by remember { mutableStateOf(false) }
+        val scale by animateFloatAsState(
+            if (isFocused) 1.1f else 1.0f,
+            label = "modelDropdownScale",
+        )
+        Surface(
+            onClick = { showModelDialog = true },
+            modifier =
+                modifier
+                    .size(52.dp)
+                    .scale(scale)
+                    .onFocusChanged { isFocused = it.isFocused },
+            shape = CircleShape,
+            color =
+                if (isFocused) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceBright
+                },
+            border =
+                if (isFocused) BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary) else null,
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize(),
             ) {
-                IconButton(onClick = onMenuClick) {
-                    Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu")
-                }
-                Row(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .menuAnchor(
-                                ExposedDropdownMenuAnchorType.PrimaryEditable,
-                                enabled = true,
-                            ),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = stringResource(R.string.agent_demo_title),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = text,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = textColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
-                }
+                Icon(
+                    imageVector = Icons.Default.SmartToy,
+                    contentDescription = "Select Model",
+                )
             }
         }
 
-        LazyExposedDropdownMenu(
+        if (showModelDialog) {
+            TvModelDialog(
+                models = models,
+                selectedModel = currentThread?.llmModel,
+                onModelSelected = onModelSelected,
+                onDismissRequest = { showModelDialog = false },
+            )
+        }
+    } else {
+        var expanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(
+            modifier = modifier,
             expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.exposedDropdownSize(),
-            containerColor = MaterialTheme.colorScheme.surfaceBright,
-            shape = RoundedCornerShape(28.dp),
+            onExpandedChange = { expanded = !expanded },
         ) {
-            item {
-                Text(
-                    "--- Gemini ---",
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                )
+            Surface(
+                modifier = Modifier.padding(bottom = 8.dp),
+                shadowElevation = 2.dp,
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceBright,
+            ) {
+                val text =
+                    currentThread?.llmModel?.modelName
+                        ?: stringResource(R.string.agent_demo_select_model_to_create_thread)
+                val textColor =
+                    if (currentThread != null) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    }
+
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .padding(start = 4.dp, end = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (onMenuClick != null) {
+                        IconButton(onClick = onMenuClick) {
+                            Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu")
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.width(12.dp))
+                    }
+                    Row(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .menuAnchor(
+                                    ExposedDropdownMenuAnchorType.PrimaryEditable,
+                                    enabled = true,
+                                ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = stringResource(R.string.agent_demo_title),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = text,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = textColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
+                    }
+                }
             }
-            val models =
-                listOf(
-                    LlmModel.GEMINI_3_5_FLASH,
-                    LlmModel.GEMINI_3_1_FLASH_LITE,
-                    LlmModel.GEMINI_3_1_PRO_PREVIEW,
-                    LlmModel.GEMINI_3_FLASH_PREVIEW,
-                    LlmModel.GEMINI_3_1_FLASH_LITE_PREVIEW,
-                )
-            items(models) { model ->
-                DropdownMenuItem(
-                    text = { Text(model.modelName) },
-                    onClick = {
-                        onModelSelected(model)
-                        expanded = false
-                    },
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                )
+
+            LazyExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.exposedDropdownSize(),
+                containerColor = MaterialTheme.colorScheme.surfaceBright,
+                shape = RoundedCornerShape(28.dp),
+            ) {
+                item {
+                    Text(
+                        "--- Gemini ---",
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+                items(models) { model ->
+                    DropdownMenuItem(
+                        text = { Text(model.modelName) },
+                        onClick = {
+                            onModelSelected(model)
+                            expanded = false
+                        },
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                    )
+                }
             }
         }
     }
@@ -554,6 +889,7 @@ fun MessageBubble(
     installedApps: List<AppInfo>,
     onConfirmAction: (String) -> Unit,
 ) {
+    val isTv = rememberFormFactor() == FormFactor.TV
     val alignment = if (message.role == MessageRole.USER) Alignment.End else Alignment.Start
     val isError = message.processingStatus == MessageProcessingStatus.FAILED
     val backgroundColor =
@@ -582,7 +918,7 @@ fun MessageBubble(
             shadowElevation = if (message.role == MessageRole.ASSISTANT) 1.dp else 0.dp,
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                SelectionContainer {
+                val bubbleContent = @Composable {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (isError) {
                             Icon(
@@ -700,6 +1036,13 @@ fun MessageBubble(
                                 style = typographyStyle,
                             )
                         }
+                    }
+                }
+                if (isTv) {
+                    bubbleContent()
+                } else {
+                    SelectionContainer {
+                        bubbleContent()
                     }
                 }
 
@@ -966,6 +1309,154 @@ fun formatMessageText(
         }
         if (lastIndex < text.length) {
             append(text.substring(lastIndex))
+        }
+    }
+}
+
+@Composable
+fun TvHistoryDialog(
+    threads: List<ThreadEntity>,
+    currentThread: ThreadEntity?,
+    onThreadSelected: (String) -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            modifier =
+                Modifier
+                    .width(400.dp)
+                    .heightIn(max = 400.dp)
+                    .padding(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = stringResource(R.string.agent_demo_chat_history),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    items(threads) { thread ->
+                        val isSelected = thread.threadId == currentThread?.threadId
+                        var isItemFocused by remember { mutableStateOf(false) }
+                        val itemScale by animateFloatAsState(
+                            if (isItemFocused) 1.04f else 1.0f,
+                            label = "itemScale",
+                        )
+                        Surface(
+                            onClick = {
+                                onThreadSelected(thread.threadId)
+                                onDismissRequest()
+                            },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp)
+                                    .scale(itemScale)
+                                    .onFocusChanged { isItemFocused = it.isFocused },
+                            shape = MaterialTheme.shapes.medium,
+                            color =
+                                if (isItemFocused) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else if (isSelected) {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                            border =
+                                if (isItemFocused) {
+                                    BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                                } else {
+                                    null
+                                },
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = thread.llmModel.modelName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                                Text(
+                                    text = "ID: ${thread.threadId.take(8)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TvModelDialog(
+    models: List<LlmModel>,
+    selectedModel: LlmModel?,
+    onModelSelected: (LlmModel) -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            modifier =
+                Modifier
+                    .width(400.dp)
+                    .heightIn(max = 300.dp)
+                    .padding(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = "Select Model",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    items(models) { model ->
+                        val isSelected = model == selectedModel
+                        var isItemFocused by remember { mutableStateOf(false) }
+                        val itemScale by animateFloatAsState(
+                            if (isItemFocused) 1.04f else 1.0f,
+                            label = "itemScale",
+                        )
+                        Surface(
+                            onClick = {
+                                onModelSelected(model)
+                                onDismissRequest()
+                            },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp)
+                                    .scale(itemScale)
+                                    .onFocusChanged { isItemFocused = it.isFocused },
+                            shape = MaterialTheme.shapes.medium,
+                            color =
+                                if (isItemFocused) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else if (isSelected) {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                            border =
+                                if (isItemFocused) {
+                                    BorderStroke(2.2.dp, MaterialTheme.colorScheme.primary)
+                                } else {
+                                    null
+                                },
+                        ) {
+                            Text(
+                                text = model.modelName,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(16.dp),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

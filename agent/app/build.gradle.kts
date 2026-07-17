@@ -127,6 +127,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.tv.material3)
     implementation(libs.coil.compose)
     implementation(libs.hilt.android)
     implementation(libs.kotlinx.serialization.json)

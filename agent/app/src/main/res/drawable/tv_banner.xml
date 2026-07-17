@@ -34,7 +34,7 @@
             </gradient>
         </aapt:attr>
     </path>
-    
+
     <!-- Faint Grid Pattern matching mobile icon background -->
     <path
         android:pathData="M20,0v180 M40,0v180 M60,0v180 M80,0v180 M100,0v180 M120,0v180 M140,0v180 M160,0v180 M180,0v180 M200,0v180 M220,0v180 M240,0v180 M260,0v180 M280,0v180 M300,0v180 M0,20h320 M0,40h320 M0,60h320 M0,80h320 M0,100h320 M0,120h320 M0,140h320 M0,160h320"
