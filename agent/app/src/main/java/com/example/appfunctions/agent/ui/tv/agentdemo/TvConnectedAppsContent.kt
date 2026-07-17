@@ -33,7 +33,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.tv.material3.IconButton
+import androidx.tv.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -88,10 +89,23 @@ fun TvConnectedAppsContent(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 16.dp),
         ) {
-            IconButton(onClick = onBack) {
+            var isBackFocused by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.onFocusChanged { isBackFocused = it.isFocused },
+                colors = IconButtonDefaults.colors(
+                    containerColor = Color.Transparent,
+                    focusedContainerColor = MaterialTheme.colorScheme.onSurface,
+                )
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
+                    tint = if (isBackFocused) {
+                        MaterialTheme.colorScheme.inverseOnSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))

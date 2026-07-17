@@ -58,7 +58,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.ui.graphics.Color
+import androidx.tv.material3.IconButton
+import androidx.tv.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -358,8 +360,24 @@ private fun TvAppListScreen(
                 onValueChange = onSearchQueryChanged,
                 trailingIcon = if (uiState.searchQuery.isNotEmpty()) {
                     {
-                        IconButton(onClick = onClearSearch) {
-                            Icon(Icons.Filled.Clear, contentDescription = "Clear")
+                        var isClearFocused by remember { mutableStateOf(false) }
+                        IconButton(
+                            onClick = onClearSearch,
+                            modifier = Modifier.onFocusChanged { isClearFocused = it.isFocused },
+                            colors = IconButtonDefaults.colors(
+                                containerColor = Color.Transparent,
+                                focusedContainerColor = MaterialTheme.colorScheme.onSurface,
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Clear,
+                                contentDescription = "Clear",
+                                tint = if (isClearFocused) {
+                                    MaterialTheme.colorScheme.inverseOnSurface
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                }
+                            )
                         }
                     }
                 } else null,
@@ -522,10 +540,23 @@ private fun TvFunctionListScreen(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
+            var isBackFocused by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.onFocusChanged { isBackFocused = it.isFocused },
+                colors = IconButtonDefaults.colors(
+                    containerColor = Color.Transparent,
+                    focusedContainerColor = MaterialTheme.colorScheme.onSurface,
+                )
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
+                    tint = if (isBackFocused) {
+                        MaterialTheme.colorScheme.inverseOnSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
@@ -550,11 +581,25 @@ private fun TvFunctionListScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = { onTogglePin(selectedApp) }) {
+            var isPinFocused by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = { onTogglePin(selectedApp) },
+                modifier = Modifier.onFocusChanged { isPinFocused = it.isFocused },
+                colors = IconButtonDefaults.colors(
+                    containerColor = Color.Transparent,
+                    focusedContainerColor = MaterialTheme.colorScheme.onSurface,
+                )
+            ) {
                 Icon(
                     imageVector = if (isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                     contentDescription = if (isPinned) "Unpin App" else "Pin App",
-                    tint = if (isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (isPinFocused) {
+                        MaterialTheme.colorScheme.inverseOnSurface
+                    } else if (isPinned) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
                 )
             }
         }
@@ -725,8 +770,24 @@ private fun TvFunctionExecutionScreen(
                 .padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            var isBackFocused by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.onFocusChanged { isBackFocused = it.isFocused },
+                colors = IconButtonDefaults.colors(
+                    containerColor = Color.Transparent,
+                    focusedContainerColor = MaterialTheme.colorScheme.onSurface,
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = if (isBackFocused) {
+                        MaterialTheme.colorScheme.inverseOnSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    }
+                )
             }
             Spacer(modifier = Modifier.width(12.dp))
 
