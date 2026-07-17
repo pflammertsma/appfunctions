@@ -20,11 +20,12 @@ It is a functional chat application built with [Jetpack Compose](https://develop
 
 ### 2. AppFunctions Testing Agent
 
-The **AppFunctions Testing Agent** is a testing and debugging tool for Android AppFunctions. It is designed to help developers verify their integrations, troubleshoot execution issues, and evaluate AppFunctions using both manual deterministic inputs and an LLM-based agent.
+The **AppFunctions Testing Agent** is a testing and debugging tool for Android AppFunctions. It is designed to help developers verify their integrations, troubleshoot execution issues, and evaluate AppFunctions using both manual deterministic inputs and an LLM-based agent on both mobile and Android TV form factors.
 
 - **Location**: [agent](agent/)
 - **Documentation**: See the [Agent README](agent/README.md) for full building, running, and testing instructions.
-- **Features**: Privileged AppFunction execution, manual debugging, test automation, and LLM agent evaluations.
+- **Structure**: Single adaptive `app` module supporting both Mobile and TV form factors (no separate modules).
+- **Features**: Privileged AppFunction execution, manual debugging, test automation, LLM agent evaluations, and adaptive Android TV support.
 
 ## Setup Guide
 
