@@ -46,6 +46,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -477,6 +479,8 @@ fun AgentDemoLoadedScreen(
                             value = messageText.text,
                             placeholder = stringResource(R.string.agent_demo_ask_agent),
                             modifier = Modifier.focusRequester(inputFocusRequester).fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = { sendMessage() }),
                             onValueChange = { newString ->
                                 messageText = TextFieldValue(newString)
                                 if (selectedAppPackageName != null && appMentionRegex != null) {

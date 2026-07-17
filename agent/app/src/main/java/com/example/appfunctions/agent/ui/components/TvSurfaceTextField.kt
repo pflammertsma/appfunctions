@@ -76,6 +76,7 @@ fun TvSurfaceTextField(
     singleLine: Boolean = true,
     trailingIcon: @Composable (() -> Unit)? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     shape: Shape = CircleShape,
 ) {
     var isEditing by remember { mutableStateOf(false) }
@@ -141,8 +142,22 @@ fun TvSurfaceTextField(
             keyboardOptions = keyboardOptions,
             keyboardActions =
                 KeyboardActions(
-                    onDone = { stopEditing() },
-                    onSearch = { stopEditing() },
+                    onSend = {
+                        keyboardActions.onSend?.invoke(this)
+                        stopEditing()
+                    },
+                    onDone = {
+                        keyboardActions.onDone?.invoke(this)
+                        stopEditing()
+                    },
+                    onGo = {
+                        keyboardActions.onGo?.invoke(this)
+                        stopEditing()
+                    },
+                    onSearch = {
+                        keyboardActions.onSearch?.invoke(this)
+                        stopEditing()
+                    },
                 ),
             shape = shape,
             colors =
@@ -163,13 +178,30 @@ fun TvSurfaceTextField(
                         tfFocused = focusState.isFocused
                     }
                     .onPreviewKeyEvent { keyEvent ->
-                        if (keyEvent.key == Key.Back) {
-                            if (keyEvent.type == KeyEventType.KeyDown || keyEvent.type == KeyEventType.KeyUp) {
-                                stopEditing()
+                        when (keyEvent.key) {
+                            Key.Back, Key.Escape -> {
+                                if (keyEvent.type == KeyEventType.KeyUp) {
+                                    stopEditing()
+                                }
+                                true
                             }
-                            true
-                        } else {
-                            false
+                            Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
+                                if (keyEvent.type == KeyEventType.KeyUp) {
+                                    val actionScope =
+                                        object :
+                                            androidx.compose.foundation.text.KeyboardActionScope {
+                                            override fun defaultKeyboardAction(imeAction: androidx.compose.ui.text.input.ImeAction) {}
+                                        }
+                                    if (keyboardActions.onSend != null) {
+                                        keyboardActions.onSend?.invoke(actionScope)
+                                    } else if (keyboardActions.onDone != null) {
+                                        keyboardActions.onDone?.invoke(actionScope)
+                                    }
+                                    stopEditing()
+                                }
+                                true
+                            }
+                            else -> false
                         }
                     },
         )
