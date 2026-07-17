@@ -203,6 +203,15 @@ fun AgentDemoLoadedScreen(
 
     val inputFocusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
+    val currentThreadId = uiState.currentThread.threadId
+    var hasInitiallyScrolled by remember(currentThreadId) { mutableStateOf(false) }
+
+    LaunchedEffect(uiState.messages, currentThreadId) {
+        if (uiState.messages.isNotEmpty() && !hasInitiallyScrolled) {
+            hasInitiallyScrolled = true
+            listState.scrollToItem(0)
+        }
+    }
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
