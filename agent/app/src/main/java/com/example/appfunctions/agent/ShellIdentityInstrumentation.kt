@@ -31,12 +31,17 @@ class ShellIdentityInstrumentation : Instrumentation() {
     override fun onStart() {
         super.onStart()
         var errorMsg: String? = null
-        val automation = uiAutomation
+        val automation = try {
+            uiAutomation
+        } catch (e: Exception) {
+            errorMsg = "Failed to connect UiAutomation: ${e.message}"
+            null
+        }
         if (automation != null) {
             automation.adoptShellPermissionIdentity(
                 "android.permission.EXECUTE_APP_FUNCTIONS",
             )
-        } else {
+        } else if (errorMsg == null) {
             errorMsg = "UiAutomation is null. Another instrumentation might be running."
         }
         val intent =

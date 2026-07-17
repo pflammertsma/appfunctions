@@ -15,8 +15,12 @@
  */
 package com.example.appfunctions.agent.ui.components
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
@@ -35,8 +39,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -51,6 +57,7 @@ import androidx.compose.ui.unit.dp
  * Android TV Surface Paradigm Text Field.
  *
  * Unfocused / Idle state: Renders a focusable Surface container that responds to D-Pad navigation.
+ * High contrast focus stroke border and scale boost when focused.
  * Pressing D-Pad Center (or click) enters editing mode and focuses the underlying OutlinedTextField.
  * Pressing Back or Enter/Done exits editing mode, hides the keyboard, and restores D-Pad navigation.
  */
@@ -67,9 +74,28 @@ fun TvSurfaceTextField(
     shape: Shape = CircleShape,
 ) {
     var isEditing by remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
+    var wasEditing by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
     val textFieldFocusRequester = remember { FocusRequester() }
+    val surfaceFocusRequester = remember { FocusRequester() }
+
+    fun stopEditing() {
+        isEditing = false
+        keyboardController?.hide()
+    }
+
+    BackHandler(enabled = isEditing) {
+        stopEditing()
+    }
+
+    LaunchedEffect(isEditing) {
+        if (isEditing) {
+            wasEditing = true
+            textFieldFocusRequester.requestFocus()
+        } else if (wasEditing) {
+            surfaceFocusRequester.requestFocus()
+        }
+    }
 
     if (isEditing) {
         var tfValue by remember {
@@ -92,56 +118,71 @@ fun TvSurfaceTextField(
             trailingIcon = trailingIcon,
             keyboardOptions = keyboardOptions,
             keyboardActions = KeyboardActions(
-                onDone = {
-                    isEditing = false
-                    keyboardController?.hide()
-                    focusManager.clearFocus()
-                },
-                onSearch = {
-                    isEditing = false
-                    keyboardController?.hide()
-                    focusManager.clearFocus()
-                }
+                onDone = { stopEditing() },
+                onSearch = { stopEditing() },
             ),
             shape = shape,
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
             ),
             modifier = modifier
+                .defaultMinSize(minHeight = 52.dp)
                 .focusRequester(textFieldFocusRequester)
                 .onPreviewKeyEvent { keyEvent ->
-                    if (keyEvent.key == Key.Back && keyEvent.type == KeyEventType.KeyUp) {
-                        isEditing = false
-                        keyboardController?.hide()
-                        focusManager.clearFocus()
+                    if (keyEvent.key == Key.Back) {
+                        if (keyEvent.type == KeyEventType.KeyDown || keyEvent.type == KeyEventType.KeyUp) {
+                            stopEditing()
+                        }
                         true
                     } else false
                 }
         )
-        LaunchedEffect(Unit) {
-            textFieldFocusRequester.requestFocus()
-        }
     } else {
+        var isFocused by remember { mutableStateOf(false) }
+        val scale by animateFloatAsState(if (isFocused) 1.02f else 1.0f, label = "textFieldScale")
+
         Surface(
             onClick = { isEditing = true },
-            modifier = modifier,
+            modifier = modifier
+                .defaultMinSize(minHeight = 52.dp)
+                .scale(scale)
+                .focusRequester(surfaceFocusRequester)
+                .onFocusChanged { isFocused = it.isFocused },
             shape = shape,
-            color = MaterialTheme.colorScheme.surfaceBright,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            color = if (isFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceBright,
+            border = if (isFocused) {
+                BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+            } else {
+                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            },
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = value.ifEmpty { placeholder },
-                    color = if (value.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f)
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    if (label != null) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isFocused) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    Text(
+                        text = value.ifEmpty { placeholder },
+                        color = when {
+                            isFocused -> MaterialTheme.colorScheme.onPrimaryContainer
+                            value.isNotEmpty() -> MaterialTheme.colorScheme.onSurface
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
                 trailingIcon?.invoke()
             }
         }
