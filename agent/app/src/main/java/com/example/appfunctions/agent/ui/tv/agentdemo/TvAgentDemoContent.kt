@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import com.example.appfunctions.agent.ui.contracts.AgentDemoScreenLayout
@@ -78,6 +80,7 @@ fun TvAgentDemoContent(
                 scope = scope,
                 packageManager = packageManager,
                 initialSidePanelVisible = initialSidePanelVisible,
+                modifier = modifier.padding(start = 80.dp),
             )
         }
     }

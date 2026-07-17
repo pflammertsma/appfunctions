@@ -81,6 +81,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.key.Key
@@ -180,6 +184,7 @@ fun AgentDemoLoadedScreen(
     scope: CoroutineScope,
     packageManager: PackageManager,
     initialSidePanelVisible: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
@@ -194,7 +199,7 @@ fun AgentDemoLoadedScreen(
         }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         containerColor = Color.Unspecified,
         topBar = {
             Row(
@@ -356,91 +361,144 @@ fun AgentDemoLoadedScreen(
                         }
                     }
 
-                // Input area
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    com.example.appfunctions.agent.ui.components.TvSurfaceTextField(
-                        value = messageText.text,
-                        placeholder = stringResource(R.string.agent_demo_ask_agent),
-                        onValueChange = { newString ->
-                            messageText = TextFieldValue(newString)
-                            if (selectedAppPackageName != null && appMentionRegex != null) {
-                                if (!appMentionRegex.containsMatchIn(newString)) {
-                                    selectedAppPackageName = null
-                                }
-                            }
-                        },
-                        trailingIcon = {
-                            IconButton(
-                                onClick = sendMessage,
-                                enabled =
-                                    messageText.text.isNotBlank() &&
-                                        uiState.status == AgentStatus.Idle,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Send,
-                                    contentDescription =
-                                        stringResource(R.string.agent_demo_send),
-                                )
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                    )
+                val isTv = rememberFormFactor() == FormFactor.TV
 
-                    if (showAutocomplete && filteredApps.isNotEmpty()) {
-                        Popup(
-                            popupPositionProvider = popupPositionProvider,
-                            onDismissRequest = {},
-                            properties = PopupProperties(focusable = false),
-                        ) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(0.9f),
-                                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                                colors =
-                                    CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surfaceBright,
-                                    ),
-                                shape = MaterialTheme.shapes.medium,
-                            ) {
-                                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                                    filteredApps.take(5).forEach { app ->
-                                        DropdownMenuItem(
-                                            text = { Text(app.label) },
-                                            onClick = {
-                                                val currentText = messageText.text
-                                                val selectionStart = messageText.selection.start
-                                                val textBeforeCursor =
-                                                    currentText.take(
-                                                        selectionStart,
-                                                    )
-                                                val textAfterCursor =
-                                                    currentText.drop(
-                                                        selectionStart,
-                                                    )
-                                                val mentionIndex = textBeforeCursor.lastIndexOf('@')
-                                                if (mentionIndex >= 0) {
-                                                    val textBeforeMention =
-                                                        textBeforeCursor.substring(
-                                                            0,
-                                                            mentionIndex,
-                                                        )
-                                                    val newText =
-                                                        "$textBeforeMention@${app.label} $textAfterCursor"
-                                                    val newCursorPosition =
-                                                        mentionIndex + app.label.length + 2
-                                                    messageText =
-                                                        TextFieldValue(
-                                                            text = newText,
-                                                            selection =
-                                                                TextRange(
-                                                                    newCursorPosition,
-                                                                ),
-                                                        )
-                                                    selectedAppPackageName = app.packageName
-                                                }
-                                            },
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        com.example.appfunctions.agent.ui.components.TvSurfaceTextField(
+                            value = messageText.text,
+                            placeholder = stringResource(R.string.agent_demo_ask_agent),
+                            onValueChange = { newString ->
+                                messageText = TextFieldValue(newString)
+                                if (selectedAppPackageName != null && appMentionRegex != null) {
+                                    if (!appMentionRegex.containsMatchIn(newString)) {
+                                        selectedAppPackageName = null
+                                    }
+                                }
+                            },
+                            trailingIcon = if (isTv) null else {
+                                {
+                                    IconButton(
+                                        onClick = sendMessage,
+                                        enabled =
+                                            messageText.text.isNotBlank() &&
+                                                uiState.status == AgentStatus.Idle,
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.Send,
+                                            contentDescription =
+                                                stringResource(R.string.agent_demo_send),
                                         )
                                     }
                                 }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+
+                        if (showAutocomplete && filteredApps.isNotEmpty()) {
+                            Popup(
+                                popupPositionProvider = popupPositionProvider,
+                                onDismissRequest = {},
+                                properties = PopupProperties(focusable = false),
+                            ) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(0.9f),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                                    colors =
+                                        CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceBright,
+                                        ),
+                                    shape = MaterialTheme.shapes.medium,
+                                ) {
+                                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                        filteredApps.take(5).forEach { app ->
+                                            DropdownMenuItem(
+                                                text = { Text(app.label) },
+                                                onClick = {
+                                                    val currentText = messageText.text
+                                                    val selectionStart = messageText.selection.start
+                                                    val textBeforeCursor =
+                                                        currentText.take(
+                                                            selectionStart,
+                                                        )
+                                                    val textAfterCursor =
+                                                        currentText.drop(
+                                                            selectionStart,
+                                                        )
+                                                    val mentionIndex = textBeforeCursor.lastIndexOf('@')
+                                                    if (mentionIndex >= 0) {
+                                                        val textBeforeMention =
+                                                            textBeforeCursor.substring(
+                                                                0,
+                                                                mentionIndex,
+                                                            )
+                                                        val newText =
+                                                            "$textBeforeMention@${app.label} $textAfterCursor"
+                                                        val newCursorPosition =
+                                                            mentionIndex + app.label.length + 2
+                                                        messageText =
+                                                            TextFieldValue(
+                                                                text = newText,
+                                                                selection =
+                                                                    TextRange(
+                                                                        newCursorPosition,
+                                                                    ),
+                                                            )
+                                                        selectedAppPackageName = app.packageName
+                                                    }
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (isTv) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                        var isSendFocused by remember { mutableStateOf(false) }
+                        val sendScale by animateFloatAsState(
+                            if (isSendFocused) 1.1f else 1.0f,
+                            label = "sendScale",
+                        )
+                        Surface(
+                            onClick = sendMessage,
+                            enabled =
+                                messageText.text.isNotBlank() &&
+                                    uiState.status == AgentStatus.Idle,
+                            modifier = Modifier
+                                .size(52.dp)
+                                .scale(sendScale)
+                                .onFocusChanged { isSendFocused = it.isFocused },
+                            shape = CircleShape,
+                            color =
+                                if (isSendFocused) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceBright,
+                            border =
+                                if (isSendFocused) {
+                                    BorderStroke(
+                                        2.5.dp,
+                                        MaterialTheme.colorScheme.onPrimaryContainer,
+                                    )
+                                } else {
+                                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                                },
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize(),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = stringResource(R.string.agent_demo_send),
+                                    tint =
+                                        if (isSendFocused) MaterialTheme.colorScheme.onPrimary
+                                        else MaterialTheme.colorScheme.onSurface,
+                                )
                             }
                         }
                     }
