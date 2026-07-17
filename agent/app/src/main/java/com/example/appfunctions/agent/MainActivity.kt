@@ -188,10 +188,10 @@ fun MainScreen(
             }
             composable("settings") {
                 SettingsScreen(
-                    onNavigateToConnectedApps = { navController.navigate("connected_apps") },
+                    onNavigateToConnectedApps = { navController.navigate("settings/connected_apps") },
                 )
             }
-            composable("connected_apps") {
+            composable("settings/connected_apps") {
                 ConnectedAppsScreen(onBack = { navController.popBackStack() })
             }
         }

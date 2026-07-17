@@ -16,6 +16,7 @@
 package com.example.appfunctions.agent.ui.layout
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -36,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -63,6 +65,7 @@ fun AdaptiveMainNavigation(
     if (isTv) {
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val focusRequesters = remember { List(items.size) { FocusRequester() } }
+        val contentFocusRequester = remember { FocusRequester() }
 
         LaunchedEffect(drawerState.currentValue) {
             if (drawerState.currentValue == DrawerValue.Open) {
@@ -87,8 +90,13 @@ fun AdaptiveMainNavigation(
                 .fillMaxSize()
                 .consumeWindowInsets(WindowInsets(0, 0, 0, 0)),
             drawerContent = { _ ->
+                val drawerColor = if (drawerState.currentValue == DrawerValue.Open) {
+                    MaterialTheme.colorScheme.surface
+                } else {
+                    Color.Transparent
+                }
                 Surface(
-                    color = MaterialTheme.colorScheme.surface,
+                    color = drawerColor,
                     modifier = Modifier.fillMaxHeight(),
                 ) {
                     Column(
@@ -106,13 +114,21 @@ fun AdaptiveMainNavigation(
                             NavigationDrawerItem(
                                 selected = isSelected,
                                 onClick = {
-                                    navController.navigate(screen) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                                    if (isSelected) {
+                                        val popped = navController.popBackStack(screen, inclusive = false)
+                                        if (!popped) {
+                                            contentFocusRequester.requestFocus()
                                         }
-                                        launchSingleTop = true
-                                        restoreState = true
+                                    } else {
+                                        navController.navigate(screen) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
                                     }
+                                    drawerState.setValue(DrawerValue.Closed)
                                 },
                                 leadingContent = {
                                     Icon(icons[index], contentDescription = labels[index])
@@ -128,7 +144,13 @@ fun AdaptiveMainNavigation(
                 }
             },
         ) {
-            content(Modifier.fillMaxSize())
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .focusRequester(contentFocusRequester)
+            ) {
+                content(Modifier.fillMaxSize())
+            }
         }
     } else {
         Scaffold(
