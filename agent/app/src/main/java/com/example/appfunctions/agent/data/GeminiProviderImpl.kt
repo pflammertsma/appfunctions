@@ -136,7 +136,7 @@ class GeminiProviderImpl
             Log.d(TAG, "Gemini Response Body: $responseBodyText")
 
             if (response.status.value !in 200..299) {
-                return LlmResponse.Error("Gemini API error: ${response.status} - $responseBodyText")
+                return LlmResponse.Error("Gemini API error: ${response.status} - $responseBodyText\nRequest: $requestBody")
             }
 
             val jsonResponse = Json.parseToJsonElement(responseBodyText).jsonObject
