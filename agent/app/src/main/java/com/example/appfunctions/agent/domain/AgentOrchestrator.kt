@@ -293,7 +293,9 @@ class AgentOrchestrator
                         }
                     } else {
                         if (textContent.isNotEmpty()) {
-                            val finalContent = appendToolCallsHint(textContent, toolCalls, emptyList())
+                            // If toolCalls is empty but we have text, we should just send the text,
+                            // but if executedToolCalls from previous iterations aren't empty, append those.
+                            val finalContent = appendToolCallsHint(textContent, executedToolCalls, emptyList())
                             executedToolCalls.clear()
                             sendMessageUseCase(
                                 threadId = message.threadId,

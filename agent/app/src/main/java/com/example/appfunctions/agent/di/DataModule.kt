@@ -109,9 +109,9 @@ abstract class DataModule {
                     )
                 }
                 install(HttpTimeout) {
-                    socketTimeoutMillis = 60000 // 60 seconds (increased for large payloads like images)
-                    requestTimeoutMillis = 60000
-                    connectTimeoutMillis = 60000
+                    socketTimeoutMillis = 180000 // 3 minutes for large base64 payloads
+                    requestTimeoutMillis = 180000
+                    connectTimeoutMillis = 180000
                 }
             }
         }
