@@ -15,6 +15,7 @@
  */
 package com.example.appfunctions.agent.data
 
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.appfunctions.agent.domain.LlmProvider
 import io.ktor.client.HttpClient
@@ -27,6 +28,6 @@ class GeminiProviderImplIntegrationTest : LlmProviderIntegrationTestBase() {
     override val apiKeyArgumentKey: String = "gemini_api_key"
 
     override fun createProvider(httpClient: HttpClient): LlmProvider {
-        return GeminiProviderImpl(httpClient, GeminiToolConverter())
+        return GeminiProviderImpl(ApplicationProvider.getApplicationContext(), httpClient, GeminiToolConverter())
     }
 }
