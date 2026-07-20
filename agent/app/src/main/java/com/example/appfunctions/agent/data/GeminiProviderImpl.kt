@@ -15,12 +15,16 @@
  */
 package com.example.appfunctions.agent.data
 
+import android.content.Context
+import android.net.Uri
+import android.util.Base64
 import android.util.Log
 import androidx.appfunctions.metadata.AppFunctionMetadata
 import com.example.appfunctions.agent.domain.LlmInput
 import com.example.appfunctions.agent.domain.LlmProvider
 import com.example.appfunctions.agent.domain.LlmResponse
 import com.example.appfunctions.agent.domain.LlmResponsePart
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.request.header
 import io.ktor.client.request.post
@@ -47,6 +51,7 @@ import javax.inject.Singleton
 class GeminiProviderImpl
     @Inject
     constructor(
+        @ApplicationContext private val context: Context,
         private val httpClient: HttpClient,
         private val toolConverter: GeminiToolConverter,
     ) : LlmProvider {
@@ -103,6 +108,17 @@ class GeminiProviderImpl
                                                 put("result", output.result)
                                             },
                                         )
+
+                                        extractImageFromOutputResult(output.result)?.let { (mimeType, base64Data) ->
+                                            Log.d(TAG, "Attaching inline_data image part for URI (mimeType=$mimeType, size=${base64Data.length})")
+                                            add(
+                                                buildJsonObject {
+                                                    put("type", "inline_data")
+                                                    put("mime_type", mimeType)
+                                                    put("data", base64Data)
+                                                },
+                                            )
+                                        }
                                     }
                                 }
                             put(KEY_INPUT, inputElement)
@@ -224,6 +240,31 @@ class GeminiProviderImpl
                 is JsonObject -> this.mapValues { it.value.toPrimitive() }
                 is JsonArray -> this.map { it.toPrimitive() }
             }
+        }
+
+        private fun extractImageFromOutputResult(resultJson: String): Pair<String, String>? {
+            try {
+                val jsonElement = Json.parseToJsonElement(resultJson)
+                if (jsonElement !is JsonObject) return null
+
+                for ((key, value) in jsonElement) {
+                    if (key.lowercase().contains("uri")) {
+                        val uriString = try { value.jsonPrimitive.content } catch (e: Exception) { null } ?: continue
+                        if (uriString.startsWith("content://") || uriString.startsWith("file://")) {
+                            val uri = Uri.parse(uriString)
+                            val mimeType = context.contentResolver.getType(uri) ?: "image/png"
+                            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                                val bytes = inputStream.readBytes()
+                                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                                return Pair(mimeType, base64)
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error resolving image URI from tool result: ${e.message}", e)
+            }
+            return null
         }
 
         private fun getSystemInstruction(): String {

@@ -37,12 +37,15 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import android.content.Context
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import io.mockk.mockk
 
 class GeminiProviderImplTest {
+    private val context = mockk<Context>(relaxed = true)
     private val toolConverter = GeminiToolConverter()
 
     @Before
@@ -79,7 +82,7 @@ class GeminiProviderImplTest {
     fun generateResponse_apiError_returnsError() =
         runBlocking {
             val httpClient = createMockHttpClient(HttpStatusCode.BadRequest, "Bad Request")
-            val provider = GeminiProviderImpl(httpClient, toolConverter)
+            val provider = GeminiProviderImpl(context, httpClient, toolConverter)
 
             val response =
                 provider.generateResponse(
@@ -100,7 +103,7 @@ class GeminiProviderImplTest {
         runBlocking {
             val mockEngine = MockEngine { _ -> throw Exception("Network connection failed") }
             val httpClient = HttpClient(mockEngine)
-            val provider = GeminiProviderImpl(httpClient, toolConverter)
+            val provider = GeminiProviderImpl(context, httpClient, toolConverter)
 
             val response =
                 provider.generateResponse(
@@ -132,7 +135,7 @@ class GeminiProviderImplTest {
                     .toString()
 
             val httpClient = createMockHttpClient(HttpStatusCode.OK, responseJson)
-            val provider = GeminiProviderImpl(httpClient, toolConverter)
+            val provider = GeminiProviderImpl(context, httpClient, toolConverter)
 
             val response =
                 provider.generateResponse(
@@ -170,7 +173,7 @@ class GeminiProviderImplTest {
                     .toString()
 
             val httpClient = createMockHttpClient(HttpStatusCode.OK, responseJson)
-            val provider = GeminiProviderImpl(httpClient, toolConverter)
+            val provider = GeminiProviderImpl(context, httpClient, toolConverter)
 
             val response =
                 provider.generateResponse(
@@ -217,7 +220,7 @@ class GeminiProviderImplTest {
                     .toString()
 
             val httpClient = createMockHttpClient(HttpStatusCode.OK, responseJson)
-            val provider = GeminiProviderImpl(httpClient, toolConverter)
+            val provider = GeminiProviderImpl(context, httpClient, toolConverter)
 
             val response =
                 provider.generateResponse(
@@ -277,7 +280,7 @@ class GeminiProviderImplTest {
                     .toString()
 
             val httpClient = createMockHttpClient(HttpStatusCode.OK, responseJson)
-            val provider = GeminiProviderImpl(httpClient, toolConverter)
+            val provider = GeminiProviderImpl(context, httpClient, toolConverter)
 
             val tool =
                 AppFunctionMetadata(
@@ -353,7 +356,7 @@ class GeminiProviderImplTest {
                     .toString()
 
             val httpClient = createMockHttpClient(HttpStatusCode.OK, responseJson)
-            val provider = GeminiProviderImpl(httpClient, toolConverter)
+            val provider = GeminiProviderImpl(context, httpClient, toolConverter)
 
             val response =
                 provider.generateResponse(
