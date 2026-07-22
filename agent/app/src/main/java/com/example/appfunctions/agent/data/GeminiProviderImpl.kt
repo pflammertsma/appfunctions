@@ -110,10 +110,10 @@ class GeminiProviderImpl
                                         )
 
                                         extractImageFromOutputResult(output.result)?.let { (mimeType, base64Data) ->
-                                            Log.d(TAG, "Attaching inline_data image part for URI (mimeType=$mimeType, size=${base64Data.length})")
+                                            Log.d(TAG, "Attaching image input part for URI (mimeType=$mimeType, size=${base64Data.length})")
                                             add(
                                                 buildJsonObject {
-                                                    put("type", "inline_data")
+                                                    put("type", "image")
                                                     put("mime_type", mimeType)
                                                     put("data", base64Data)
                                                 },
