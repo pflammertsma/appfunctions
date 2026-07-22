@@ -59,6 +59,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material3.Button
+import androidx.tv.material3.Button as TvButton
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -78,6 +79,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.tv.material3.ButtonDefaults as TvButtonDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -677,20 +679,60 @@ private fun AppFunctionObjectTypeSheetContent(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            TextButton(
-                onClick = onReset,
-                modifier = Modifier.height(56.dp).weight(1f),
-            ) {
-                Text(text = stringResource(R.string.debugging_reset))
-            }
-            Button(
-                onClick = onConfirm,
-                modifier = Modifier
-                    .height(56.dp)
-                    .weight(1f)
-                    .focusRequester(confirmFocusRequester),
-            ) {
-                Text(text = stringResource(R.string.debugging_confirm))
+            if (isTvFormFactor()) {
+                TvButton(
+                    onClick = onReset,
+                    modifier = Modifier.height(56.dp).weight(1f),
+                    colors = TvButtonDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        focusedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                    border = TvButtonDefaults.border(
+                        focusedBorder = androidx.tv.material3.Border(
+                            border = BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+                        )
+                    )
+                ) {
+                    Text(text = stringResource(R.string.debugging_reset))
+                }
+                TvButton(
+                    onClick = onConfirm,
+                    modifier = Modifier
+                        .height(56.dp)
+                        .weight(1f)
+                        .focusRequester(confirmFocusRequester),
+                    colors = TvButtonDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        focusedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
+                    border = TvButtonDefaults.border(
+                        focusedBorder = androidx.tv.material3.Border(
+                            border = BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+                        )
+                    )
+                ) {
+                    Text(text = stringResource(R.string.debugging_confirm))
+                }
+            } else {
+                TextButton(
+                    onClick = onReset,
+                    modifier = Modifier.height(56.dp).weight(1f),
+                ) {
+                    Text(text = stringResource(R.string.debugging_reset))
+                }
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier
+                        .height(56.dp)
+                        .weight(1f)
+                        .focusRequester(confirmFocusRequester),
+                ) {
+                    Text(text = stringResource(R.string.debugging_confirm))
+                }
             }
         }
     }

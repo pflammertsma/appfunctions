@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -47,6 +48,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.tv.material3.DrawerValue
 import androidx.tv.material3.ModalNavigationDrawer
 import androidx.tv.material3.NavigationDrawerItem
+import androidx.tv.material3.NavigationDrawerItemDefaults
 import androidx.tv.material3.rememberDrawerState
 
 @Composable
@@ -133,6 +135,15 @@ fun AdaptiveMainNavigation(
                                 leadingContent = {
                                     Icon(icons[index], contentDescription = labels[index])
                                 },
+                                colors = NavigationDrawerItemDefaults.colors(
+                                    focusedContainerColor = androidx.tv.material3.MaterialTheme.colorScheme.primaryContainer,
+                                    focusedContentColor = androidx.tv.material3.MaterialTheme.colorScheme.onPrimaryContainer,
+                                ),
+                                border = NavigationDrawerItemDefaults.border(
+                                    focusedBorder = androidx.tv.material3.Border(
+                                        border = BorderStroke(2.5.dp, androidx.tv.material3.MaterialTheme.colorScheme.primary)
+                                    )
+                                ),
                                 modifier = Modifier
                                     .focusRequester(focusRequesters[index])
                                     .padding(vertical = 4.dp),
