@@ -37,7 +37,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -359,7 +358,7 @@ private fun TvAppListScreen(
         modifier =
             modifier
                 .fillMaxSize()
-                .padding(start = 80.dp, top = 24.dp, end = 24.dp, bottom = 24.dp),
+                .padding(start = 80.dp, top = 16.dp, end = 24.dp, bottom = 24.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
@@ -368,7 +367,6 @@ private fun TvAppListScreen(
             Text(
                 text = stringResource(id = R.string.debugging_installed_apps_title),
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.semantics { heading() },
             )
@@ -411,12 +409,9 @@ private fun TvAppListScreen(
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 260.dp),
-//                contentPadding = PaddingValues(start = 8.dp, end = 24.dp, top = 8.dp, bottom = 48.dp),
-//                horizontalArrangement = Arrangement.spacedBy(16.dp),
-//                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 24.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(start = 8.dp, end = 24.dp, top = 8.dp, bottom = 48.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
                 uiState.filteredApps.sections.forEachIndexed { sectionIndex, section ->

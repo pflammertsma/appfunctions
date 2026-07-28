@@ -46,6 +46,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
@@ -97,6 +99,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
@@ -242,13 +246,14 @@ fun AgentDemoLoadedScreen(
             ) {
                 if (isTv) {
                     Text(
-                        text = stringResource(R.string.agent_demo_title),
-                        style = MaterialTheme.typography.titleLarge,
+                        text = stringResource(R.string.nav_agent_demo),
+                        style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier =
                             Modifier
                                 .weight(1f)
-                                .padding(horizontal = 8.dp),
+                                .padding(horizontal = 8.dp)
+                                .semantics { heading() },
                     )
                 } else {
                     ModelDropdown(
@@ -477,6 +482,8 @@ fun AgentDemoLoadedScreen(
                             value = messageText.text,
                             placeholder = stringResource(R.string.agent_demo_ask_agent),
                             modifier = Modifier.focusRequester(inputFocusRequester).fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = { sendMessage() }),
                             onValueChange = { newString ->
                                 messageText = TextFieldValue(newString)
                                 if (selectedAppPackageName != null && appMentionRegex != null) {

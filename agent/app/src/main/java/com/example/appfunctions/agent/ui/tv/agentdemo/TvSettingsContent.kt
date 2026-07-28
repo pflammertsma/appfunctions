@@ -62,6 +62,7 @@ import com.example.appfunctions.agent.data.ServiceTier
 import com.example.appfunctions.agent.ui.components.TvSurfaceTextField
 import com.example.appfunctions.agent.ui.contracts.SettingsScreenLayout
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 object TvSettingsLayout : SettingsScreenLayout {
     @Composable
@@ -95,7 +96,7 @@ fun TvSettingsContent(
 ) {
     val apiKeyFocusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) {
-        delay(100)
+        delay(100.milliseconds)
         apiKeyFocusRequester.requestFocus()
     }
 
@@ -120,7 +121,7 @@ fun TvSettingsContent(
             modifier =
                 Modifier.fillMaxSize()
                     .padding(paddingValues)
-                    .padding(start = 56.dp)
+                    .padding(start = 80.dp, end = 48.dp, bottom = 48.dp)
                     .consumeWindowInsets(paddingValues)
                     .imePadding()
                     .verticalScroll(rememberScrollState()),
