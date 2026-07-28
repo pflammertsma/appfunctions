@@ -1221,6 +1221,7 @@ fun StatusIndicator(
                 Text(
                     stringResource(R.string.agent_demo_thinking),
                     style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
@@ -1262,13 +1263,18 @@ fun StatusIndicator(
                         Spacer(modifier = Modifier.width(12.dp))
                     }
                     Column {
-                        Text(appName, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            appName,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 stringResource(R.string.agent_demo_connecting),
                                 style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }

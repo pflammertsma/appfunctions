@@ -86,6 +86,29 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        stopChatOverlayService()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        stopChatOverlayService()
+    }
+
+    private fun stopChatOverlayService() {
+        try {
+            stopService(
+                android.content.Intent(
+                    this,
+                    com.example.appfunctions.agent.ui.overlay.ChatOverlayService::class.java,
+                )
+            )
+        } catch (e: Exception) {
+            // Ignore if service stop fails
+        }
+    }
+
     companion object {
         const val ROUTE_AGENT_DEMO = "agent_demo?threadId={threadId}"
         const val ARG_THREAD_ID = "threadId"

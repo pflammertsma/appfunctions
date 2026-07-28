@@ -25,15 +25,21 @@ import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -64,10 +70,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
@@ -163,17 +180,15 @@ class ChatOverlayService : Service() {
                 setViewTreeSavedStateRegistryOwner(overlayOwner)
                 setViewTreeOnBackPressedDispatcherOwner(overlayOwner)
                 setOnKeyListener { _, keyCode, event ->
-                    if (
-                        keyCode == android.view.KeyEvent.KEYCODE_BACK &&
-                            event.action == android.view.KeyEvent.ACTION_UP
-                    ) {
-                        if (overlayOwner.onBackPressedDispatcher.hasEnabledCallbacks()) {
-                            overlayOwner.onBackPressedDispatcher.onBackPressed()
-                            true
-                        } else {
-                            exitOverlayMode()
-                            true
+                    if (keyCode == android.view.KeyEvent.KEYCODE_BACK) {
+                        if (event.action == android.view.KeyEvent.ACTION_UP) {
+                            if (overlayOwner.onBackPressedDispatcher.hasEnabledCallbacks()) {
+                                overlayOwner.onBackPressedDispatcher.onBackPressed()
+                            } else {
+                                exitOverlayMode()
+                            }
                         }
+                        true
                     } else {
                         false
                     }
@@ -193,53 +208,56 @@ class ChatOverlayService : Service() {
                         appsList = getInstalledAppsUseCase()
                     }
 
-                    OverlayContent(
-                        targetAppLabel = targetAppLabel,
-                        targetPackageName = targetPackageName,
-                        messages = messages,
-                        installedApps = appsList,
-                        status = status,
-                        activePendingActionIds = activePendingActionIds,
-                        isAppFunctionDebuggingEnabled = isAppFunctionDebuggingEnabled,
-                        onSendMessage = { text ->
-                            val threadId = _currentThreadId.value
-                            if (threadId != null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.BottomCenter,
+                    ) {
+                        OverlayContent(
+                            targetAppLabel = targetAppLabel,
+                            targetPackageName = targetPackageName,
+                            messages = messages,
+                            installedApps = appsList,
+                            status = status,
+                            activePendingActionIds = activePendingActionIds,
+                            isAppFunctionDebuggingEnabled = isAppFunctionDebuggingEnabled,
+                            onSendMessage = { text ->
+                                val threadId = _currentThreadId.value
+                                if (threadId != null) {
+                                    serviceScope.launch {
+                                        sendMessageUseCase(
+                                            threadId = threadId,
+                                            role = MessageRole.USER,
+                                            textContent = text,
+                                            processingStatus = MessageProcessingStatus.PENDING_AGENT_RESPONSE,
+                                            targetPackageName = targetPackageName,
+                                        )
+                                    }
+                                }
+                            },
+                            onConfirmAction = { actionId ->
                                 serviceScope.launch {
-                                    sendMessageUseCase(
-                                        threadId = threadId,
-                                        role = MessageRole.USER,
-                                        textContent = text,
-                                        processingStatus = MessageProcessingStatus.PENDING_AGENT_RESPONSE,
-                                        targetPackageName = targetPackageName,
-                                    )
+                                    val pendingIntent = consumePendingIntentUseCase(actionId)
+                                    if (pendingIntent != null) {
+                                        launchPendingIntentUseCase(pendingIntent)
+                                    }
                                 }
+                            },
+                            onClose = {
+                                exitOverlayMode()
                             }
-                        },
-                        onConfirmAction = { actionId ->
-                            serviceScope.launch {
-                                val pendingIntent = consumePendingIntentUseCase(actionId)
-                                if (pendingIntent != null) {
-                                    launchPendingIntentUseCase(pendingIntent)
-                                }
-                            }
-                        },
-                        onClose = {
-                            exitOverlayMode()
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
 
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             0, // Focusable: do NOT set FLAG_NOT_FOCUSABLE so text input and D-Pad work
             PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.BOTTOM
-        }
+        )
 
         windowManager?.addView(composeView, params)
 
@@ -323,6 +341,7 @@ private fun OverlayContent(
     val inputFocusRequester = remember { FocusRequester() }
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
     val listState = rememberLazyListState()
+    var isListExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -340,111 +359,73 @@ private fun OverlayContent(
     }
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        shadowElevation = 16.dp,
-    ) {
-        Column(
-            modifier = Modifier
+        modifier =
+            Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Header Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(
-                                imageVector = Icons.Default.Layers,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(20.dp)
-                            )
+                .padding(start = 36.dp, end = 36.dp, bottom = 32.dp)
+                .onKeyEvent { keyEvent ->
+                    if (keyEvent.key == Key.Back || keyEvent.key == Key.Escape) {
+                        if (keyEvent.type == KeyEventType.KeyUp) {
+                            onClose()
                         }
+                        true
+                    } else {
+                        false
                     }
-                    Column {
-                        Text(
-                            text = "Overlay Mode",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                        Text(
-                            text = if (targetAppLabel.isNotEmpty()) "Target app: $targetAppLabel" else "Target app",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
-
-                var isCloseFocused by remember { mutableStateOf(false) }
-                val closeScale by animateFloatAsState(
-                    if (isCloseFocused) 1.1f else 1.0f,
-                    label = "closeScale"
-                )
-                Surface(
-                    onClick = onClose,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .scale(closeScale)
-                        .onFocusChanged { isCloseFocused = it.isFocused },
-                    shape = CircleShape,
-                    color = if (isCloseFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                    border = if (isCloseFocused) BorderStroke(2.dp, MaterialTheme.colorScheme.onPrimary) else null,
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Exit Overlay Mode",
-                            tint = if (isCloseFocused) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-            }
-
+                },
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = RoundedCornerShape(32.dp),
+        shadowElevation = 20.dp,
+    ) {
+        val topPadding by animateDpAsState(
+            targetValue = if (isListExpanded) 0.dp else 24.dp,
+            label = "topPadding"
+        )
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(start = 28.dp, end = 28.dp, bottom = 24.dp, top = topPadding),
+        ) {
             // Compact Chat Message List
             if (messages.isNotEmpty() || status != AgentStatus.Idle) {
-                LazyColumn(
-                    state = listState,
-                    reverseLayout = true,
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 240.dp)
+                AnimatedVisibility(
+                    visible = isListExpanded,
+                    enter = expandVertically(),
+                    exit = shrinkVertically(),
                 ) {
-                    if (status != AgentStatus.Idle) {
-                        item {
-                            val context = androidx.compose.ui.platform.LocalContext.current
-                            StatusIndicator(status = status, packageManager = context.packageManager)
-                        }
-                    }
+                    Column {
+                        LazyColumn(
+                            state = listState,
+                            reverseLayout = true,
+                            contentPadding = PaddingValues(top = 24.dp, bottom = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 260.dp)
+                        ) {
+                            if (status != AgentStatus.Idle) {
+                                item {
+                                    val context = androidx.compose.ui.platform.LocalContext.current
+                                    StatusIndicator(status = status, packageManager = context.packageManager)
+                                }
+                            }
 
-                    items(
-                        items = messages.asReversed(),
-                        key = { it.messageId }
-                    ) { message ->
-                        MessageBubble(
-                            message = message,
-                            isValidAction = message.pendingIntentId in activePendingActionIds,
-                            installedApps = installedApps,
-                            showAppFunctionDebugDetails = isAppFunctionDebuggingEnabled,
-                            onConfirmAction = onConfirmAction,
-                        )
+                            items(
+                                items = messages.asReversed(),
+                                key = { it.messageId }
+                            ) { message ->
+                                MessageBubble(
+                                    message = message,
+                                    isValidAction = message.pendingIntentId in activePendingActionIds,
+                                    installedApps = installedApps,
+                                    showAppFunctionDebugDetails = isAppFunctionDebuggingEnabled,
+                                    onConfirmAction = onConfirmAction,
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }
@@ -453,21 +434,85 @@ private fun OverlayContent(
             val sendMessage = {
                 val textStr = messageText.text
                 if (textStr.isNotBlank()) {
+                    isListExpanded = true
                     onSendMessage(textStr)
                     messageText = TextFieldValue("")
-                    inputFocusRequester.requestFocus()
                 }
             }
 
+            val coroutineScope = rememberCoroutineScope()
+            val focusManager = LocalFocusManager.current
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .onPreviewKeyEvent { keyEvent ->
+                            if (keyEvent.type == KeyEventType.KeyDown) {
+                                when (keyEvent.key) {
+                                    Key.DirectionUp -> {
+                                        if (!isListExpanded) {
+                                            isListExpanded = true
+                                            true
+                                        } else {
+                                            val moved = focusManager.moveFocus(FocusDirection.Up)
+                                            if (!moved) {
+                                                coroutineScope.launch { listState.animateScrollBy(150f) }
+                                                true
+                                            } else false
+                                        }
+                                    }
+                                    Key.DirectionDown -> {
+                                        if (!isListExpanded) {
+                                            true
+                                        } else {
+                                            val moved = focusManager.moveFocus(FocusDirection.Down)
+                                            if (!moved) {
+                                                val isAtBottom =
+                                                    listState.firstVisibleItemIndex == 0 &&
+                                                        listState.firstVisibleItemScrollOffset == 0
+                                                if (isAtBottom) {
+                                                    isListExpanded = false
+                                                } else {
+                                                    coroutineScope.launch { listState.animateScrollBy(-150f) }
+                                                }
+                                                true
+                                            } else false
+                                        }
+                                    }
+                                    Key.PageUp -> {
+                                        coroutineScope.launch { listState.animateScrollBy(450f) }
+                                        true
+                                    }
+                                    Key.PageDown -> {
+                                        coroutineScope.launch { listState.animateScrollBy(-450f) }
+                                        true
+                                    }
+                                    else -> false
+                                }
+                            } else false
+                        }
+                        .onKeyEvent { keyEvent ->
+                            if (keyEvent.key == Key.Back || keyEvent.key == Key.Escape) {
+                                if (keyEvent.type == KeyEventType.KeyUp) {
+                                    onClose()
+                                }
+                                true
+                            } else false
+                        },
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_rounded_function),
+                    contentDescription = null,
+                    modifier = Modifier.padding(end = 8.dp).size(32.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
                 Box(modifier = Modifier.weight(1f)) {
                     TvSurfaceTextField(
                         value = messageText.text,
-                        placeholder = "Ask Agent in overlay...",
+                        placeholder = stringResource(R.string.agent_demo_ask_agent),
                         modifier = Modifier
                             .focusRequester(inputFocusRequester)
                             .fillMaxWidth(),
@@ -486,7 +531,7 @@ private fun OverlayContent(
                 val isSendEnabled = messageText.text.isNotBlank()
                 var isSendFocused by remember { mutableStateOf(false) }
                 val sendScale by animateFloatAsState(
-                    if (isSendFocused) 1.1f else 1.0f,
+                    if (isSendFocused) 1.05f else 1.0f,
                     label = "sendScale"
                 )
                 Surface(
