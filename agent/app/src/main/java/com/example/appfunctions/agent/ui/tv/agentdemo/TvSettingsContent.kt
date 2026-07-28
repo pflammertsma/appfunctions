@@ -55,6 +55,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.example.appfunctions.agent.BuildConfig
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.data.ServiceTier
@@ -119,12 +120,12 @@ fun TvSettingsContent(
             modifier =
                 Modifier.fillMaxSize()
                     .padding(paddingValues)
-                    .padding(start = 56.dp)
+                    .padding(start = 80.dp, end = 48.dp, bottom = 48.dp)
                     .consumeWindowInsets(paddingValues)
                     .imePadding()
                     .verticalScroll(rememberScrollState()),
         ) {
-            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Text(
                     text = stringResource(id = R.string.settings_agent),
                     style = MaterialTheme.typography.titleMedium,
@@ -132,7 +133,7 @@ fun TvSettingsContent(
                     modifier = Modifier.padding(vertical = 8.dp).semantics { heading() },
                 )
             }
-            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Text(
                     text = stringResource(id = R.string.settings_gemini_api_key),
                     style = MaterialTheme.typography.bodyMedium,
@@ -162,7 +163,7 @@ fun TvSettingsContent(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
-                com.example.appfunctions.agent.ui.screens.agentdemo.ServiceTierDropdown(
+                TvServiceTierDropdown(
                     selectedTier = serviceTier,
                     onTierSelected = onServiceTierSelected,
                 )
@@ -212,11 +213,11 @@ fun TvSettingsContent(
             }
 
             HorizontalDivider(
-                modifier = Modifier.padding(vertical = 8.dp, horizontal = 24.dp),
+                modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp),
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
 
-            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                 Text(
                     text = stringResource(id = R.string.settings_about),
                     style = MaterialTheme.typography.titleMedium,
@@ -264,3 +265,105 @@ fun TvSettingsContent(
         }
     }
 }
+
+@Composable
+private fun TvServiceTierDropdown(
+    selectedTier: ServiceTier,
+    onTierSelected: (ServiceTier) -> Unit,
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    var isFocused by remember { mutableStateOf(false) }
+
+    Surface(
+        onClick = { showDialog = true },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .onFocusChanged { isFocused = it.isFocused },
+        shape = MaterialTheme.shapes.extraLarge,
+        color = if (isFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceBright,
+        border =
+            if (isFocused) {
+                BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+            } else {
+                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            },
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(id = selectedTier.labelRes()),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isFocused) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = if (isFocused) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+
+    if (showDialog) {
+        Dialog(onDismissRequest = { showDialog = false }) {
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.settings_service_tier),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                    )
+                    ServiceTier.entries.forEach { tier ->
+                        var isItemFocused by remember { mutableStateOf(false) }
+                        Surface(
+                            onClick = {
+                                onTierSelected(tier)
+                                showDialog = false
+                            },
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .onFocusChanged { isItemFocused = it.isFocused },
+                            shape = MaterialTheme.shapes.medium,
+                            color = if (isItemFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                            border = if (isItemFocused) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = stringResource(id = tier.labelRes()),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (tier == selectedTier) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun ServiceTier.labelRes(): Int =
+    when (this) {
+        ServiceTier.STANDARD -> R.string.settings_service_tier_standard
+        ServiceTier.PRIORITY -> R.string.settings_service_tier_priority
+    }
+

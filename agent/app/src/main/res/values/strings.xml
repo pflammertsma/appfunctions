@@ -31,6 +31,7 @@
 
     <!-- Debugging -->
     <string name="debugging_title">Debugging Page</string>
+    <string name="debugging_installed_apps_title">Installed Apps</string>
     <string name="debugging_pinned_apps">Pinned Apps</string>
     <string name="debugging_supported">Apps with AppFunctions</string>
     <string name="debugging_unsupported">Apps without AppFunctions</string>
