@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -22,6 +24,19 @@ plugins {
     alias(libs.plugins.screenshot)
     alias(libs.plugins.oss.licenses)
 }
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+val geminiApiKey: String =
+    (project.findProperty("GEMINI_API_KEY") as? String)?.takeIf { it.isNotBlank() }
+        ?: localProperties.getProperty("GEMINI_API_KEY")?.takeIf { it.isNotBlank() }
+        ?: System.getenv("GEMINI_API_KEY")?.takeIf { it.isNotBlank() }
+        ?: ""
 
 android {
     namespace = "com.example.appfunctions.agent"
@@ -39,7 +54,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("Boolean", "IS_RETAIL", "false")
-        buildConfigField("String", "GEMINI_API_KEY", "\"\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     buildTypes {
@@ -65,13 +80,12 @@ android {
                 gradle.startParameter.taskNames.any {
                     it.contains("Retail", ignoreCase = true)
                 }
-            val apiKey = project.findProperty("GEMINI_API_KEY") as? String ?: ""
-            if (containsRetail && apiKey.isEmpty()) {
+            if (containsRetail && geminiApiKey.isEmpty()) {
                 throw GradleException(
-                    "GEMINI_API_KEY project property is required for retail builds. Pass it using -PGEMINI_API_KEY=your_key",
+                    "GEMINI_API_KEY is required for retail builds. Define it in local.properties or pass it using -PGEMINI_API_KEY=your_key",
                 )
             }
-            buildConfigField("String", "GEMINI_API_KEY", "\"$apiKey\"")
+            buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
         }
     }
     buildFeatures {
