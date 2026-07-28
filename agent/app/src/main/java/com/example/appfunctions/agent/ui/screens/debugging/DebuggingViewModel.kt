@@ -31,7 +31,6 @@ import com.example.appfunctions.agent.domain.appfunction.GetInstalledAppsUseCase
 import com.example.appfunctions.agent.domain.pendingintent.LaunchPendingIntentUseCase
 import com.example.appfunctions.agent.domain.troubleshoot.TroubleshootAppUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,7 +56,6 @@ class DebuggingViewModel
         private val troubleshootAppUseCase: TroubleshootAppUseCase,
         private val launchPendingIntentUseCase: LaunchPendingIntentUseCase,
         private val settingsRepository: SettingsRepository,
-        @ApplicationContext private val context: android.content.Context,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(DebuggingUiState())
         val uiState: StateFlow<DebuggingUiState> = _uiState.asStateFlow()
@@ -101,7 +99,7 @@ class DebuggingViewModel
             val functions =
                 allAppFunctions.entries.find { it.key.packageName == appInfo.packageName }?.value
             if (functions.isNullOrEmpty()) {
-                runTroubleshooting(appInfo.packageName)
+                runTroubleshooting(appInfo)
             } else {
                 _uiState.update { state ->
                     state.copy(
@@ -295,15 +293,16 @@ class DebuggingViewModel
             }
         }
 
-        private fun runTroubleshooting(packageName: String) {
+        private fun runTroubleshooting(appInfo: AppInfo) {
             viewModelScope.launch {
                 _uiState.update {
                     it.copy(
                         searchAppResultState =
                             SearchAppResultState.TroubleshootUiState(isLoading = true),
+                        toastMessage = "${appInfo.label} does not have any AppFunctions",
                     )
                 }
-                val report = troubleshootAppUseCase(packageName)
+                val report = troubleshootAppUseCase(appInfo.packageName)
                 _uiState.update {
                     it.copy(
                         searchAppResultState =

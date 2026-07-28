@@ -2,12 +2,33 @@
 
 AppFunctions Testing Agent is a testing and debugging tool for Android AppFunctions.
 It allows developers to troubleshoot integration issues, manually invoke functions with
-deterministic input, and test functions using an LLM-based agent.
+deterministic input, and test functions using an LLM-based agent. It supports both
+mobile and Android TV form factors, automatically adapting its layout.
 
 ## Prerequisites
 
 -   **ADB**: Ensure you have `adb` installed and in your PATH.
 -   **Device/Emulator**: A connected Android device or emulator with developer options enabled.
+
+## Project Structure & Adaptive UI
+
+Unlike other samples in this repository, the Testing Agent is structured as a **single adaptive `app` module**. It is designed to run on both **Mobile** and **Android TV** form factors, automatically adapting its layout and focus behavior at runtime based on the detected device.
+
+### Core Screens
+
+#### 1. Agent Demo (LLM Agent Chat)
+An interactive chat interface where you can evaluate AppFunctions using natural language via an LLM.
+
+| Mobile | Android TV |
+| :---: | :---: |
+| <img src="docs/images/mobile_demo.png" height="450" alt="Mobile Agent Demo"> | <img src="docs/images/tv_screenshot.png" height="450" alt="TV Agent Demo"> |
+
+#### 2. Manual Debugging (Function invocation)
+A deterministic testing interface that discovers installed apps and their registered AppFunctions, allowing you to fill in parameters and invoke them manually.
+
+| Mobile | Android TV |
+| :---: | :---: |
+| <img src="docs/images/mobile_debugging.png" height="450" alt="Mobile Debugging"> | <img src="docs/images/tv_debugging.png" height="450" alt="TV Debugging"> |
 
 ## Building and Running
 
@@ -38,38 +59,6 @@ use the `run_privileged.sh` script.
 **Retail Debug Build with API Key**
 ```bash
 ./run_privileged.sh --build --flavor retail --api-key YOUR_API_KEY
-```
-
-### Android TV / Google TV Keyboard Configuration
-
-When developing or testing on Android TV / Google TV emulators using a physical workstation keyboard, you can disable the soft keyboard (Gboard) and Voice Input popups or hide on-screen keyboards when a hardware keyboard is attached:
-
-```bash
-# Option A: Hide on-screen virtual keyboard when hardware keyboard is present
-adb shell settings put secure show_ime_with_hard_keyboard 0
-
-# Option B: Disable soft keyboards and voice input services entirely
-adb shell pm disable-user --user 0 com.google.android.inputmethod.latin
-adb shell pm disable-user --user 0 com.google.android.katniss
-adb shell pm disable-user --user 0 com.google.android.tts
-```
-
-To re-enable package services later:
-```bash
-adb shell pm enable com.google.android.inputmethod.latin
-adb shell pm enable com.google.android.katniss
-adb shell pm enable com.google.android.tts
-adb shell settings put secure show_ime_with_hard_keyboard 1
-```
-
-### Overlay Mode Permission (Android TV)
-
-To display the chat interface as a screen overlay on top of another app, the `SYSTEM_ALERT_WINDOW` ("Display over other apps") permission is required. 
-If not granted, clicking an application from the **Overlay Mode** dialog will automatically open the Google TV Special Access settings screen so you can enable it.
-
-You can also grant it via ADB:
-```bash
-adb shell appops set com.example.appfunctions.agent SYSTEM_ALERT_WINDOW allow
 ```
 
 ## Testing

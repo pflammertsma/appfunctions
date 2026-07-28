@@ -15,7 +15,10 @@
  */
 package com.example.appfunctions.agent.ui.layout
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -30,12 +33,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -43,10 +52,13 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.tv.material3.DrawerValue
+import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.ModalNavigationDrawer
 import androidx.tv.material3.NavigationDrawerItem
+import androidx.tv.material3.NavigationDrawerItemDefaults
 import androidx.tv.material3.rememberDrawerState
 
+@OptIn(ExperimentalTvMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun AdaptiveMainNavigation(
     navController: NavHostController,
@@ -63,24 +75,15 @@ fun AdaptiveMainNavigation(
     if (isTv) {
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         val focusRequesters = remember { List(items.size) { FocusRequester() } }
+        val contentFocusRequester = remember { FocusRequester() }
+        var isDrawerFocused by remember { mutableStateOf(false) }
 
-        LaunchedEffect(drawerState.currentValue) {
-            if (drawerState.currentValue == DrawerValue.Open) {
-                val selectedIndex =
-                    items.indexOfFirst { screen ->
-                        currentDestination?.hierarchy?.any {
-                            it.route?.startsWith(screen) == true
-                        } == true
-                    }
-                if (selectedIndex != -1) {
-                    try {
-                        focusRequesters[selectedIndex].requestFocus()
-                    } catch (e: Exception) {
-                        // Ignore if not attached yet
-                    }
-                }
+        val selectedIndex =
+            items.indexOfFirst { screen ->
+                currentDestination?.hierarchy?.any {
+                    it.route?.startsWith(screen) == true
+                } == true
             }
-        }
 
         ModalNavigationDrawer(
             drawerState = drawerState,
@@ -89,9 +92,29 @@ fun AdaptiveMainNavigation(
                     .fillMaxSize()
                     .consumeWindowInsets(WindowInsets(0, 0, 0, 0)),
             drawerContent = { _ ->
+                val drawerColor =
+                    if (drawerState.currentValue == DrawerValue.Open) {
+                        MaterialTheme.colorScheme.surface
+                    } else {
+                        Color.Transparent
+                    }
+
                 Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.fillMaxHeight(),
+                    color = drawerColor,
+                    modifier =
+                        Modifier
+                            .fillMaxHeight()
+                            .onFocusChanged { isDrawerFocused = it.hasFocus }
+                            .focusGroup()
+                            .focusProperties {
+                                onEnter = {
+                                    if (selectedIndex in focusRequesters.indices) {
+                                        focusRequesters[selectedIndex]
+                                    } else {
+                                        FocusRequester.Default
+                                    }
+                                }
+                            },
                 ) {
                     Column(
                         modifier =
@@ -109,20 +132,55 @@ fun AdaptiveMainNavigation(
                             NavigationDrawerItem(
                                 selected = isSelected,
                                 onClick = {
-                                    navController.navigate(screen) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                                    if (isSelected) {
+                                        val popped = navController.popBackStack(screen, inclusive = false)
+                                        if (!popped) {
+                                            contentFocusRequester.requestFocus()
                                         }
-                                        launchSingleTop = true
-                                        restoreState = true
+                                    } else {
+                                        navController.navigate(screen) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
                                     }
+                                    drawerState.setValue(DrawerValue.Closed)
                                 },
                                 leadingContent = {
                                     Icon(icons[index], contentDescription = labels[index])
                                 },
+                                colors =
+                                    NavigationDrawerItemDefaults.colors(
+                                        containerColor = Color.Transparent,
+                                        contentColor = Color(0xFFC4C6D0),
+                                        focusedContainerColor = Color(0xFF33353A),
+                                        focusedContentColor = Color.White,
+                                        selectedContainerColor = Color(0xFF44474F),
+                                        selectedContentColor = Color.White,
+                                        focusedSelectedContainerColor = Color(0xFF3F4759),
+                                        focusedSelectedContentColor = Color.White,
+                                    ),
+                                border =
+                                    NavigationDrawerItemDefaults.border(
+                                        focusedBorder =
+                                            androidx.tv.material3.Border(
+                                                border = BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary),
+                                            ),
+                                        focusedSelectedBorder =
+                                            androidx.tv.material3.Border(
+                                                border = BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary),
+                                            ),
+                                    ),
                                 modifier =
                                     Modifier
                                         .focusRequester(focusRequesters[index])
+                                        .focusProperties {
+                                            canFocus = isDrawerFocused || drawerState.currentValue == DrawerValue.Open || isSelected
+                                            right = contentFocusRequester
+                                            end = contentFocusRequester
+                                        }
                                         .padding(vertical = 4.dp),
                             ) {
                                 Text(labels[index])
@@ -132,7 +190,16 @@ fun AdaptiveMainNavigation(
                 }
             },
         ) {
-            content(Modifier.fillMaxSize())
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .focusRequester(contentFocusRequester)
+                        .focusGroup()
+                        .focusRestorer(),
+            ) {
+                content(Modifier.fillMaxSize())
+            }
         }
     } else {
         Scaffold(

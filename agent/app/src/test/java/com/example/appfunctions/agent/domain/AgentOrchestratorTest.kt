@@ -54,6 +54,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.time.Duration.Companion.milliseconds
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -383,7 +384,7 @@ class AgentOrchestratorTest {
     ) {
         coEvery { observePendingMessagesUseCase(threadId) } returns
             flow {
-                delay(10)
+                delay(10.milliseconds)
                 emit(message)
             }
         coEvery { manageThreadsUseCase.getThread(threadId) } returns flowOf(thread)

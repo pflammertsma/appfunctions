@@ -21,6 +21,7 @@ import androidx.appfunctions.metadata.AppFunctionMetadata
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,7 +55,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -71,7 +71,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -88,7 +90,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.zIndex
 import androidx.core.graphics.drawable.toBitmap
+import androidx.tv.material3.IconButton
+import androidx.tv.material3.IconButtonDefaults
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
 import com.example.appfunctions.agent.domain.appfunction.ExecuteAppFunctionResult
@@ -98,6 +103,7 @@ import com.example.appfunctions.agent.ui.screens.debugging.AppFunctionDataTypeIn
 import com.example.appfunctions.agent.ui.screens.debugging.DebuggingUiState
 import com.example.appfunctions.agent.ui.screens.debugging.SearchAppResultState
 import com.example.appfunctions.agent.ui.screens.debugging.TroubleshootResult
+import com.example.appfunctions.agent.ui.screens.debugging.createDefaultValue
 import com.example.appfunctions.agent.ui.theme.GoogleSansCodeFontFamily
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
@@ -126,8 +132,6 @@ object TvDebuggingLayout : DebuggingScreenLayout {
             onFunctionInputsChange = onFunctionInputsChange,
             onInvoke = onInvoke,
             onClearResult = onClearResult,
-            onFunctionExpandedChange = onFunctionExpandedChange,
-            onLaunchPendingIntent = onLaunchPendingIntent,
             onTogglePin = onTogglePin,
             modifier = modifier,
         )
@@ -143,8 +147,6 @@ fun TvDebuggingContent(
     onFunctionInputsChange: (String, Map<String, Any>) -> Unit,
     onInvoke: (AppFunctionMetadata) -> Unit,
     onClearResult: () -> Unit,
-    onFunctionExpandedChange: (String, Boolean) -> Unit,
-    onLaunchPendingIntent: (PendingIntent) -> Unit,
     onTogglePin: (AppInfo) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -241,12 +243,14 @@ fun TvDebuggingContent(
                                         }
                                         true
                                     }
+
                                     Key.DirectionDown -> {
                                         coroutineScope.launch {
                                             scrollState.animateScrollBy(200f)
                                         }
                                         true
                                     }
+
                                     else -> false
                                 }
                             } else {
@@ -315,7 +319,12 @@ fun TvDebuggingContent(
                                     .focusRequester(okButtonFocusRequester)
                                     .onFocusChanged { isOkFocused = it.isFocused },
                             shape = MaterialTheme.shapes.medium,
-                            color = if (isOkFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
+                            color =
+                                if (isOkFocused) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                },
                             border =
                                 if (isOkFocused) {
                                     BorderStroke(2.5.dp, MaterialTheme.colorScheme.onPrimaryContainer)
@@ -358,10 +367,15 @@ private fun TvAppListScreen(
         modifier =
             modifier
                 .fillMaxSize()
-                .padding(start = 80.dp, top = 16.dp, end = 24.dp, bottom = 24.dp),
+                .padding(start = 80.dp, top = 24.dp, end = 24.dp, bottom = 24.dp)
+                .focusGroup()
+                .focusRestorer(),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -378,8 +392,26 @@ private fun TvAppListScreen(
                 trailingIcon =
                     if (uiState.searchQuery.isNotEmpty()) {
                         {
-                            IconButton(onClick = onClearSearch) {
-                                Icon(Icons.Filled.Clear, contentDescription = "Clear")
+                            var isClearFocused by remember { mutableStateOf(false) }
+                            IconButton(
+                                onClick = onClearSearch,
+                                modifier = Modifier.onFocusChanged { isClearFocused = it.isFocused },
+                                colors =
+                                    IconButtonDefaults.colors(
+                                        containerColor = Color.Transparent,
+                                        focusedContainerColor = MaterialTheme.colorScheme.onSurface,
+                                    ),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Clear,
+                                    contentDescription = "Clear",
+                                    tint =
+                                        if (isClearFocused) {
+                                            MaterialTheme.colorScheme.inverseOnSurface
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
+                                )
                             }
                         }
                     } else {
@@ -409,10 +441,14 @@ private fun TvAppListScreen(
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 260.dp),
-                contentPadding = PaddingValues(start = 8.dp, end = 24.dp, top = 8.dp, bottom = 48.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .focusGroup()
+                        .focusRestorer(),
             ) {
                 uiState.filteredApps.sections.forEachIndexed { sectionIndex, section ->
                     if (section.apps.isNotEmpty()) {
@@ -440,7 +476,10 @@ private fun TvAppListScreen(
                             val shouldFocus = isTargetApp || (lastSelectedAppPackageName == null && isFirstAppOverall)
 
                             var isCardFocused by remember { mutableStateOf(false) }
-                            val scale by animateFloatAsState(if (isCardFocused) 1.04f else 1.0f, label = "appCardScale")
+                            val scale by animateFloatAsState(
+                                if (isCardFocused) 1.04f else 1.0f,
+                                label = "appCardScale",
+                            )
 
                             Surface(
                                 onClick = { onAppSelected(app) },
@@ -450,9 +489,13 @@ private fun TvAppListScreen(
                                         .scale(scale)
                                         .then(
                                             if (isTargetApp) {
-                                                Modifier.focusRequester(targetAppFocusRequester)
+                                                Modifier.focusRequester(
+                                                    targetAppFocusRequester,
+                                                )
                                             } else if (isFirstAppOverall) {
-                                                Modifier.focusRequester(firstAppFocusRequester)
+                                                Modifier.focusRequester(
+                                                    firstAppFocusRequester,
+                                                )
                                             } else {
                                                 Modifier
                                             },
@@ -565,7 +608,9 @@ private fun TvFunctionListScreen(
                 ?.any { it.packageName == selectedApp.packageName } == true
         }
 
-    val functions = (searchAppResultState as? SearchAppResultState.FunctionsFoundState)?.functions ?: emptyList()
+    val functions =
+        (searchAppResultState as? SearchAppResultState.FunctionsFoundState)
+            ?.functions ?: emptyList()
 
     Column(
         modifier =
@@ -574,13 +619,31 @@ private fun TvFunctionListScreen(
                 .padding(start = 80.dp, top = 24.dp, end = 24.dp, bottom = 24.dp),
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
+            var isBackFocused by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.onFocusChanged { isBackFocused = it.isFocused },
+                colors =
+                    IconButtonDefaults.colors(
+                        containerColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
+                    tint =
+                        if (isBackFocused) {
+                            MaterialTheme.colorScheme.inverseOnSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                 )
             }
             Spacer(modifier = Modifier.width(12.dp))
@@ -605,11 +668,27 @@ private fun TvFunctionListScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            IconButton(onClick = { onTogglePin(selectedApp) }) {
+            var isPinFocused by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = { onTogglePin(selectedApp) },
+                modifier = Modifier.onFocusChanged { isPinFocused = it.isFocused },
+                colors =
+                    IconButtonDefaults.colors(
+                        containerColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+            ) {
                 Icon(
                     imageVector = if (isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
                     contentDescription = if (isPinned) "Unpin App" else "Pin App",
-                    tint = if (isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint =
+                        if (isPinFocused) {
+                            MaterialTheme.colorScheme.inverseOnSurface
+                        } else if (isPinned) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                 )
             }
         }
@@ -636,19 +715,31 @@ private fun TvFunctionListScreen(
                             )
 
                             LazyColumn(
-                                contentPadding = PaddingValues(bottom = 24.dp),
+                                contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp),
-                                modifier = Modifier.fillMaxSize(),
+                                modifier =
+                                    Modifier
+                                        .fillMaxSize()
+                                        .focusGroup()
+                                        .focusRestorer(),
                             ) {
                                 columnItemsIndexed(items = functions, key = { _, fn -> fn.id }) { index, function ->
                                     val isTargetFunction = function.id == lastSelectedFunctionId
                                     val isFirstItem = index == 0
 
                                     var isFunctionFocused by remember { mutableStateOf(false) }
-                                    val scale by animateFloatAsState(if (isFunctionFocused) 1.03f else 1.0f, label = "fnScale")
+                                    val scale by animateFloatAsState(
+                                        if (isFunctionFocused) 1.03f else 1.0f,
+                                        label = "fnScale",
+                                    )
 
                                     val hashIndex = function.id.indexOf('#')
-                                    val name = if (hashIndex != -1) function.id.substring(hashIndex + 1) else function.id
+                                    val name =
+                                        if (hashIndex != -1) {
+                                            function.id.substring(hashIndex + 1)
+                                        } else {
+                                            function.id
+                                        }
 
                                     val shouldFocus = isTargetFunction || (lastSelectedFunctionId == null && isFirstItem)
 
@@ -658,11 +749,16 @@ private fun TvFunctionListScreen(
                                             Modifier
                                                 .fillMaxWidth()
                                                 .scale(scale)
+                                                .zIndex(if (isFunctionFocused) 1f else 0f)
                                                 .then(
                                                     if (isTargetFunction) {
-                                                        Modifier.focusRequester(targetItemFocusRequester)
+                                                        Modifier.focusRequester(
+                                                            targetItemFocusRequester,
+                                                        )
                                                     } else if (isFirstItem) {
-                                                        Modifier.focusRequester(firstItemFocusRequester)
+                                                        Modifier.focusRequester(
+                                                            firstItemFocusRequester,
+                                                        )
                                                     } else {
                                                         Modifier
                                                     },
@@ -819,8 +915,26 @@ private fun TvFunctionExecutionScreen(
                     .padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            var isBackFocused by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.onFocusChanged { isBackFocused = it.isFocused },
+                colors =
+                    IconButtonDefaults.colors(
+                        containerColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint =
+                        if (isBackFocused) {
+                            MaterialTheme.colorScheme.inverseOnSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                )
             }
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -875,7 +989,7 @@ private fun TvFunctionExecutionScreen(
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 16.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
             ) {
                 columnItemsIndexed(
                     items = function.parameters,
@@ -883,21 +997,21 @@ private fun TvFunctionExecutionScreen(
                 ) { index, parameter ->
                     val currentValue =
                         inputValues[parameter.name]
-                            ?: com.example.appfunctions.agent.ui.screens.debugging.createDefaultValue(parameter.dataType)
+                            ?: createDefaultValue(parameter.dataType)
 
                     val isArray = parameter.dataType is androidx.appfunctions.metadata.AppFunctionArrayTypeMetadata
 
                     @Composable
                     fun ResetButton() {
                         var isResetFocused by remember { mutableStateOf(false) }
-                        val resetScale by animateFloatAsState(if (isResetFocused) 1.05f else 1.0f, label = "resetScale")
+                        val resetScale by animateFloatAsState(
+                            if (isResetFocused) 1.05f else 1.0f,
+                            label = "resetScale",
+                        )
 
                         Surface(
                             onClick = {
-                                val defaultValue =
-                                    com.example.appfunctions.agent.ui.screens.debugging.createDefaultValue(
-                                        parameter.dataType,
-                                    )
+                                val defaultValue = createDefaultValue(parameter.dataType)
                                 onInputValuesChange(inputValues + (parameter.name to defaultValue))
                             },
                             modifier =
@@ -950,11 +1064,22 @@ private fun TvFunctionExecutionScreen(
                     }
 
                     if (isArray) {
+                        var isItemFocused by remember { mutableStateOf(false) }
                         Box(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .then(if (index == 0) Modifier.focusRequester(firstParamFocusRequester) else Modifier),
+                                    .onFocusChanged { isItemFocused = it.hasFocus }
+                                    .zIndex(if (isItemFocused) 1f else 0f)
+                                    .then(
+                                        if (index == 0) {
+                                            Modifier.focusRequester(
+                                                firstParamFocusRequester,
+                                            )
+                                        } else {
+                                            Modifier
+                                        },
+                                    ),
                         ) {
                             AppFunctionDataTypeInput(
                                 dataType = parameter.dataType,
@@ -970,8 +1095,13 @@ private fun TvFunctionExecutionScreen(
                             )
                         }
                     } else {
+                        var isItemFocused by remember { mutableStateOf(false) }
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .onFocusChanged { isItemFocused = it.hasFocus }
+                                    .zIndex(if (isItemFocused) 1f else 0f),
                             verticalAlignment = Alignment.Top,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
@@ -979,7 +1109,15 @@ private fun TvFunctionExecutionScreen(
                                 modifier =
                                     Modifier
                                         .weight(1f)
-                                        .then(if (index == 0) Modifier.focusRequester(firstParamFocusRequester) else Modifier),
+                                        .then(
+                                            if (index == 0) {
+                                                Modifier.focusRequester(
+                                                    firstParamFocusRequester,
+                                                )
+                                            } else {
+                                                Modifier
+                                            },
+                                        ),
                             ) {
                                 AppFunctionDataTypeInput(
                                     dataType = parameter.dataType,
@@ -1011,7 +1149,10 @@ private fun TvFunctionExecutionScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             var isRunFocused by remember { mutableStateOf(false) }
-            val runScale by animateFloatAsState(if (isRunFocused) 1.04f else 1.0f, label = "runScale")
+            val runScale by animateFloatAsState(
+                if (isRunFocused) 1.04f else 1.0f,
+                label = "runScale",
+            )
 
             Surface(
                 onClick = onInvoke,
@@ -1021,8 +1162,18 @@ private fun TvFunctionExecutionScreen(
                         .focusRequester(runButtonFocusRequester)
                         .onFocusChanged { isRunFocused = it.isFocused },
                 shape = MaterialTheme.shapes.large,
-                color = if (isRunFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
-                border = if (isRunFocused) BorderStroke(2.5.dp, MaterialTheme.colorScheme.onPrimaryContainer) else null,
+                color =
+                    if (isRunFocused) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.primaryContainer
+                    },
+                border =
+                    if (isRunFocused) {
+                        BorderStroke(2.5.dp, MaterialTheme.colorScheme.onPrimaryContainer)
+                    } else {
+                        null
+                    },
             ) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
@@ -1032,14 +1183,24 @@ private fun TvFunctionExecutionScreen(
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = null,
-                        tint = if (isRunFocused) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer,
+                        tint =
+                            if (isRunFocused) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            },
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.debugging_invoke),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = if (isRunFocused) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onPrimaryContainer,
+                        color =
+                            if (isRunFocused) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            },
                     )
                 }
             }

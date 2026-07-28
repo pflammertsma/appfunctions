@@ -121,12 +121,12 @@ fun TvSettingsContent(
             modifier =
                 Modifier.fillMaxSize()
                     .padding(paddingValues)
-                    .padding(start = 80.dp, end = 48.dp, bottom = 48.dp)
+                    .padding(start = 56.dp)
                     .consumeWindowInsets(paddingValues)
                     .imePadding()
                     .verticalScroll(rememberScrollState()),
         ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
                 Text(
                     text = stringResource(id = R.string.settings_agent),
                     style = MaterialTheme.typography.titleMedium,
@@ -134,7 +134,7 @@ fun TvSettingsContent(
                     modifier = Modifier.padding(vertical = 8.dp).semantics { heading() },
                 )
             }
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
                 Text(
                     text = stringResource(id = R.string.settings_gemini_api_key),
                     style = MaterialTheme.typography.bodyMedium,
@@ -158,7 +158,7 @@ fun TvSettingsContent(
                 }
             }
 
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
                 Text(
                     text = stringResource(id = R.string.settings_service_tier),
                     style = MaterialTheme.typography.bodyMedium,
@@ -214,11 +214,11 @@ fun TvSettingsContent(
             }
 
             HorizontalDivider(
-                modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp),
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
 
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
                 Text(
                     text = stringResource(id = R.string.settings_about),
                     style = MaterialTheme.typography.titleMedium,
@@ -300,13 +300,23 @@ private fun TvServiceTierDropdown(
             Text(
                 text = stringResource(id = selectedTier.labelRes()),
                 style = MaterialTheme.typography.bodyLarge,
-                color = if (isFocused) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                color =
+                    if (isFocused) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                 modifier = Modifier.weight(1f),
             )
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = if (isFocused) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                tint =
+                    if (isFocused) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
             )
         }
     }
@@ -340,8 +350,18 @@ private fun TvServiceTierDropdown(
                                     .padding(vertical = 4.dp)
                                     .onFocusChanged { isItemFocused = it.isFocused },
                             shape = MaterialTheme.shapes.medium,
-                            color = if (isItemFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-                            border = if (isItemFocused) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                            color =
+                                if (isItemFocused) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainerLow
+                                },
+                            border =
+                                if (isItemFocused) {
+                                    BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                                } else {
+                                    null
+                                },
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -350,7 +370,12 @@ private fun TvServiceTierDropdown(
                                 Text(
                                     text = stringResource(id = tier.labelRes()),
                                     style = MaterialTheme.typography.bodyLarge,
-                                    color = if (tier == selectedTier) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                    color =
+                                        if (tier == selectedTier) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
                                     modifier = Modifier.weight(1f),
                                 )
                             }
@@ -367,4 +392,3 @@ private fun ServiceTier.labelRes(): Int =
         ServiceTier.STANDARD -> R.string.settings_service_tier_standard
         ServiceTier.PRIORITY -> R.string.settings_service_tier_priority
     }
-

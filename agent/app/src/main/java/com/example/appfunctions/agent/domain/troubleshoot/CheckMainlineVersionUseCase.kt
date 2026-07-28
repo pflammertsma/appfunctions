@@ -17,6 +17,7 @@ package com.example.appfunctions.agent.domain.troubleshoot
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
@@ -40,13 +41,13 @@ class CheckMainlineVersionUseCase
                             PackageManager.PackageInfoFlags.of(PackageManager.MATCH_APEX.toLong()),
                         )
                     val versionCode = packageInfo.longVersionCode
-                    if (versionCode > REQUIRED_VERSION) return true
-                } catch (e: PackageManager.NameNotFoundException) {
+                    if (versionCode >= REQUIRED_VERSION) return true
+                } catch (_: PackageManager.NameNotFoundException) {
                     // Try next package or fallback
                 }
             }
             // Fallback to true if running on API Level >= 36
-            return android.os.Build.VERSION.SDK_INT >= 36
+            return Build.VERSION.SDK_INT >= 36
         }
 
         companion object {

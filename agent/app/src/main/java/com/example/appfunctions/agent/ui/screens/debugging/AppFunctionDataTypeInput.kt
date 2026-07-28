@@ -52,6 +52,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
@@ -77,7 +78,6 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.key
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -87,8 +87,11 @@ import androidx.compose.ui.unit.dp
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.ui.layout.AdaptiveInputContainer
 import com.example.appfunctions.agent.ui.layout.isTvFormFactor
+import androidx.tv.material3.Button as TvButton
+import androidx.tv.material3.ButtonDefaults as TvButtonDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("UNCHECKED_CAST")
 @Composable
 fun AppFunctionDataTypeInput(
     dataType: AppFunctionDataTypeMetadata,
@@ -316,7 +319,9 @@ fun EnumDropdown(
     ) {
         OutlinedCard(
             onClick = { expanded = true },
-            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         ) {
             ListItem(
                 overlineContent = {
@@ -468,7 +473,7 @@ fun ArrayTypeInput(
                 modifier =
                     Modifier
                         .focusGroup()
-                        .focusProperties { onEnter = { addItemFocusRequester } },
+                        .focusProperties { onEnter = { addItemFocusRequester.requestFocus() } },
             ) {
                 if (isTvFormFactor()) {
                     var isAddFocused by remember { mutableStateOf(false) }
@@ -587,11 +592,10 @@ fun ComplexTypeInput(
 ) {
     val isTv = isTvFormFactor()
     var isFocused by remember { mutableStateOf(false) }
-    val cardScale by
-        androidx.compose.animation.core.animateFloatAsState(
-            if (isTv && isFocused) 1.02f else 1.0f,
-            label = "complexInputScale",
-        )
+    val cardScale by animateFloatAsState(
+        if (isTv && isFocused) 1.02f else 1.0f,
+        label = "complexInputScale",
+    )
 
     Surface(
         onClick = onClick,
@@ -696,21 +700,68 @@ private fun AppFunctionObjectTypeSheetContent(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            TextButton(
-                onClick = onReset,
-                modifier = Modifier.height(56.dp).weight(1f),
-            ) {
-                Text(text = stringResource(R.string.debugging_reset))
-            }
-            Button(
-                onClick = onConfirm,
-                modifier =
-                    Modifier
-                        .height(56.dp)
-                        .weight(1f)
-                        .focusRequester(confirmFocusRequester),
-            ) {
-                Text(text = stringResource(R.string.debugging_confirm))
+            if (isTvFormFactor()) {
+                TvButton(
+                    onClick = onReset,
+                    modifier = Modifier.height(56.dp).weight(1f),
+                    colors =
+                        TvButtonDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            focusedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                    border =
+                        TvButtonDefaults.border(
+                            focusedBorder =
+                                androidx.tv.material3.Border(
+                                    border = BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary),
+                                ),
+                        ),
+                ) {
+                    Text(text = stringResource(R.string.debugging_reset))
+                }
+                TvButton(
+                    onClick = onConfirm,
+                    modifier =
+                        Modifier
+                            .height(56.dp)
+                            .weight(1f)
+                            .focusRequester(confirmFocusRequester),
+                    colors =
+                        TvButtonDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            focusedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                    border =
+                        TvButtonDefaults.border(
+                            focusedBorder =
+                                androidx.tv.material3.Border(
+                                    border = BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary),
+                                ),
+                        ),
+                ) {
+                    Text(text = stringResource(R.string.debugging_confirm))
+                }
+            } else {
+                TextButton(
+                    onClick = onReset,
+                    modifier = Modifier.height(56.dp).weight(1f),
+                ) {
+                    Text(text = stringResource(R.string.debugging_reset))
+                }
+                Button(
+                    onClick = onConfirm,
+                    modifier =
+                        Modifier
+                            .height(56.dp)
+                            .weight(1f)
+                            .focusRequester(confirmFocusRequester),
+                ) {
+                    Text(text = stringResource(R.string.debugging_confirm))
+                }
             }
         }
     }

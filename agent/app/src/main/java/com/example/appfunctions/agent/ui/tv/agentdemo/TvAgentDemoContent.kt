@@ -53,9 +53,9 @@ object TvAgentDemoLayout : AgentDemoScreenLayout {
 @Composable
 fun TvAgentDemoContent(
     uiState: AgentUiState,
+    modifier: Modifier = Modifier,
     onEvent: (AgentUiEvent) -> Unit,
     initialSidePanelVisible: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val packageManager = context.packageManager

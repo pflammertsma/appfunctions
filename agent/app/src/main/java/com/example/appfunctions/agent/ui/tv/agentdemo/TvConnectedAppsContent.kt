@@ -33,7 +33,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -50,6 +49,8 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.tv.material3.IconButton
+import androidx.tv.material3.IconButtonDefaults
 import coil.compose.rememberAsyncImagePainter
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.ui.contracts.ConnectedAppsScreenLayout
@@ -89,10 +90,25 @@ fun TvConnectedAppsContent(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 16.dp),
         ) {
-            IconButton(onClick = onBack) {
+            var isBackFocused by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.onFocusChanged { isBackFocused = it.isFocused },
+                colors =
+                    IconButtonDefaults.colors(
+                        containerColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
+                    tint =
+                        if (isBackFocused) {
+                            MaterialTheme.colorScheme.inverseOnSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                 )
             }
             Spacer(modifier = Modifier.width(16.dp))
@@ -158,7 +174,9 @@ fun TvConnectedAppsContent(
                         }
                         Switch(
                             checked = app.isConnected,
-                            onCheckedChange = null,
+                            onCheckedChange = { connected ->
+                                onToggleApp(app.packageName, connected)
+                            },
                         )
                     }
                 }

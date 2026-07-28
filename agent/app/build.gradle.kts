@@ -25,12 +25,13 @@ plugins {
     alias(libs.plugins.oss.licenses)
 }
 
-val localProperties = Properties().apply {
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
-        localPropertiesFile.inputStream().use { load(it) }
+val localProperties =
+    Properties().apply {
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { load(it) }
+        }
     }
-}
 
 val geminiApiKey: String =
     (project.findProperty("GEMINI_API_KEY") as? String)?.takeIf { it.isNotBlank() }
@@ -46,7 +47,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.appfunctions.agent"
-        minSdk = 36
+        minSdk = 33
         targetSdk = 37
         versionCode = 1
         versionName = "0.0.0"
@@ -59,7 +60,6 @@ android {
 
     buildTypes {
         release {
-            @Suppress("UnstableApiUsage")
             optimization {
                 enable = true
             }
@@ -77,12 +77,13 @@ android {
             buildConfigField("Boolean", "IS_RETAIL", "true")
 
             val containsRetail =
-                gradle.startParameter.taskNames.any {
+                project.gradle.startParameter.taskNames.any {
                     it.contains("Retail", ignoreCase = true)
                 }
             if (containsRetail && geminiApiKey.isEmpty()) {
                 throw GradleException(
-                    "GEMINI_API_KEY is required for retail builds. Define it in local.properties or pass it using -PGEMINI_API_KEY=your_key",
+                    "GEMINI_API_KEY is required for retail builds. " +
+                        "Define it in local.properties or pass it using -PGEMINI_API_KEY=your_key",
                 )
             }
             buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")

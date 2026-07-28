@@ -109,7 +109,7 @@ fun AppFunctionItem(
             modifier
                 .fillMaxWidth()
                 .scale(cardScale)
-                .onFocusChanged { isCardFocused = it.hasFocus },
+                .onFocusChanged { isCardFocused = it.isFocused },
         tonalElevation = if (isTv && isCardFocused) 8.dp else tonalElevation,
         shadowElevation = shadowElevation,
         shape = MaterialTheme.shapes.large,

@@ -16,6 +16,7 @@
 package com.example.appfunctions.agent.ui.screens.agentdemo
 
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandHorizontally
@@ -25,6 +26,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,7 +37,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -54,6 +55,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.SmartToy
@@ -72,6 +74,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -98,23 +101,20 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.input.TransformedText
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -146,6 +146,8 @@ import com.mikepenz.markdown.m3.Markdown
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun AgentDemoScreen(viewModel: AgentDemoViewModel = hiltViewModel()) {
@@ -191,8 +193,8 @@ fun AgentDemoLoadedScreen(
     drawerState: DrawerState,
     scope: CoroutineScope,
     packageManager: PackageManager,
-    initialSidePanelVisible: Boolean = false,
     modifier: Modifier = Modifier,
+    initialSidePanelVisible: Boolean = false,
 ) {
     val focusManager = LocalFocusManager.current
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
@@ -216,25 +218,16 @@ fun AgentDemoLoadedScreen(
 
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
-            if (listState.firstVisibleItemIndex == 0) {
-                listState.animateScrollToItem(0)
-            }
+            listState.animateScrollToItem(0)
         }
     }
 
     if (isTv) {
         LaunchedEffect(Unit) {
-            delay(100)
+            delay(100.milliseconds)
             inputFocusRequester.requestFocus()
         }
     }
-
-    val chipBgColor = MaterialTheme.colorScheme.primaryContainer
-    val chipTextColor = MaterialTheme.colorScheme.onPrimaryContainer
-    val visualTransformation =
-        remember(uiState.installedApps, chipTextColor) {
-            InlineAppScopingVisualTransformation(uiState.installedApps, chipTextColor)
-        }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -263,6 +256,14 @@ fun AgentDemoLoadedScreen(
                                 .padding(horizontal = 8.dp),
                         currentThread = uiState.currentThread,
                         onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
+                        isAppFunctionDebuggingEnabled = uiState.isAppFunctionDebuggingEnabled,
+                        onToggleAppFunctionDebugging = {
+                            onEvent(
+                                AgentUiEvent.OnToggleAppFunctionDebugging(
+                                    it,
+                                ),
+                            )
+                        },
                         onMenuClick = {
                             if (isWideScreen) {
                                 isSidePanelVisible = !isSidePanelVisible
@@ -346,6 +347,7 @@ fun AgentDemoLoadedScreen(
                             isValidAction =
                                 message.pendingIntentId in uiState.activePendingActionIds,
                             installedApps = uiState.installedApps,
+                            showAppFunctionDebugDetails = uiState.isAppFunctionDebuggingEnabled,
                             onConfirmAction = { onEvent(AgentUiEvent.OnConfirmAction(it)) },
                         )
                     }
@@ -425,49 +427,38 @@ fun AgentDemoLoadedScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 2.dp, vertical = 16.dp)
                             .onPreviewKeyEvent { keyEvent ->
-                                android.util.Log.d("JetskiDebug", "Row onPreviewKeyEvent: keyEvent=$keyEvent")
                                 if (isTv && keyEvent.type == KeyEventType.KeyDown) {
                                     when (keyEvent.key) {
                                         Key.DirectionUp -> {
                                             val moved = focusManager.moveFocus(FocusDirection.Up)
-                                            android.util.Log.d("JetskiDebug", "DirectionUp: moved=$moved")
                                             if (!moved) {
-                                                android.util.Log.d(
-                                                    "JetskiDebug",
-                                                    "DirectionUp: scrolling to ${listState.firstVisibleItemIndex + 1}",
-                                                )
-                                                coroutineScope.launch {
-                                                    if (uiState.messages.isNotEmpty()) {
-                                                        val nextIndex =
-                                                            (listState.firstVisibleItemIndex + 1)
-                                                                .coerceAtMost(uiState.messages.size - 1)
-                                                        listState.animateScrollToItem(nextIndex)
-                                                    }
-                                                }
+                                                coroutineScope.launch { listState.animateScrollBy(150f) }
                                                 true
                                             } else {
                                                 false
                                             }
                                         }
+
                                         Key.DirectionDown -> {
                                             val moved = focusManager.moveFocus(FocusDirection.Down)
-                                            android.util.Log.d("JetskiDebug", "DirectionDown: moved=$moved")
                                             if (!moved) {
-                                                android.util.Log.d(
-                                                    "JetskiDebug",
-                                                    "DirectionDown: scrolling to ${listState.firstVisibleItemIndex - 1}",
-                                                )
-                                                coroutineScope.launch {
-                                                    if (listState.firstVisibleItemIndex > 0) {
-                                                        val nextIndex = listState.firstVisibleItemIndex - 1
-                                                        listState.animateScrollToItem(nextIndex)
-                                                    }
-                                                }
+                                                coroutineScope.launch { listState.animateScrollBy(-150f) }
                                                 true
                                             } else {
                                                 false
                                             }
                                         }
+
+                                        Key.PageUp -> {
+                                            coroutineScope.launch { listState.animateScrollBy(450f) }
+                                            true
+                                        }
+
+                                        Key.PageDown -> {
+                                            coroutineScope.launch { listState.animateScrollBy(-450f) }
+                                            true
+                                        }
+
                                         else -> false
                                     }
                                 } else {
@@ -481,9 +472,10 @@ fun AgentDemoLoadedScreen(
                         com.example.appfunctions.agent.ui.components.TvSurfaceTextField(
                             value = messageText.text,
                             placeholder = stringResource(R.string.agent_demo_ask_agent),
-                            modifier = Modifier.focusRequester(inputFocusRequester).fillMaxWidth(),
-                            keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Send),
-                            keyboardActions = KeyboardActions(onSend = { sendMessage() }),
+                            modifier =
+                                Modifier
+                                    .focusRequester(inputFocusRequester)
+                                    .fillMaxWidth(),
                             onValueChange = { newString ->
                                 messageText = TextFieldValue(newString)
                                 if (selectedAppPackageName != null && appMentionRegex != null) {
@@ -492,6 +484,8 @@ fun AgentDemoLoadedScreen(
                                     }
                                 }
                             },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = { sendMessage() }),
                             trailingIcon =
                                 if (isTv) {
                                     null
@@ -541,7 +535,8 @@ fun AgentDemoLoadedScreen(
                                                         currentText.drop(
                                                             selectionStart,
                                                         )
-                                                    val mentionIndex = textBeforeCursor.lastIndexOf('@')
+                                                    val mentionIndex =
+                                                        textBeforeCursor.lastIndexOf('@')
                                                     if (mentionIndex >= 0) {
                                                         val textBeforeMention =
                                                             textBeforeCursor.substring(
@@ -612,7 +607,11 @@ fun AgentDemoLoadedScreen(
                                     contentDescription = stringResource(R.string.agent_demo_send),
                                     tint =
                                         when {
-                                            !isSendEnabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                            !isSendEnabled ->
+                                                MaterialTheme.colorScheme.onSurface.copy(
+                                                    alpha = 0.38f,
+                                                )
+
                                             isSendFocused -> MaterialTheme.colorScheme.onPrimary
                                             else -> MaterialTheme.colorScheme.onPrimaryContainer
                                         },
@@ -624,6 +623,14 @@ fun AgentDemoLoadedScreen(
                         ModelDropdown(
                             currentThread = uiState.currentThread,
                             onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
+                            isAppFunctionDebuggingEnabled = uiState.isAppFunctionDebuggingEnabled,
+                            onToggleAppFunctionDebugging = {
+                                onEvent(
+                                    AgentUiEvent.OnToggleAppFunctionDebugging(
+                                        it,
+                                    ),
+                                )
+                            },
                         )
 
                         // History Button
@@ -737,6 +744,8 @@ fun ModelDropdown(
     modifier: Modifier = Modifier,
     currentThread: ThreadEntity?,
     onModelSelected: (LlmModel) -> Unit,
+    isAppFunctionDebuggingEnabled: Boolean = true,
+    onToggleAppFunctionDebugging: (Boolean) -> Unit = {},
     onMenuClick: (() -> Unit)? = null,
 ) {
     val isTv = rememberFormFactor() == FormFactor.TV
@@ -788,6 +797,8 @@ fun ModelDropdown(
                 models = models,
                 selectedModel = currentThread?.llmModel,
                 onModelSelected = onModelSelected,
+                isAppFunctionDebuggingEnabled = isAppFunctionDebuggingEnabled,
+                onToggleAppFunctionDebugging = onToggleAppFunctionDebugging,
                 onDismissRequest = { showModelDialog = false },
             )
         }
@@ -894,6 +905,7 @@ fun MessageBubble(
     message: MessageEntity,
     isValidAction: Boolean,
     installedApps: List<AppInfo>,
+    showAppFunctionDebugDetails: Boolean = true,
     onConfirmAction: (String) -> Unit,
 ) {
     val isTv = rememberFormFactor() == FormFactor.TV
@@ -911,6 +923,13 @@ fun MessageBubble(
             message.role == MessageRole.USER -> MaterialTheme.colorScheme.onPrimaryContainer
             else -> MaterialTheme.colorScheme.onSurface
         }
+
+    val parsedData =
+        remember(message.textContent) {
+            parseMessageContent(message.textContent)
+        }
+    val cleanContentText = parsedData.first
+    val parsedCalls = parsedData.second
 
     Column(
         modifier =
@@ -937,12 +956,12 @@ fun MessageBubble(
                         }
                         val contentText =
                             if (
-                                message.textContent.isEmpty() &&
+                                cleanContentText.isEmpty() &&
                                 message.pendingIntentId != null
                             ) {
                                 stringResource(R.string.agent_demo_action_confirmation_needed)
                             } else {
-                                message.textContent
+                                cleanContentText
                             }
 
                         if (message.role != MessageRole.USER) {
@@ -1052,6 +1071,12 @@ fun MessageBubble(
                         bubbleContent()
                     }
                 }
+                if (showAppFunctionDebugDetails && parsedCalls.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    parsedCalls.forEach { call ->
+                        AppFunctionCallHintCard(call, installedApps)
+                    }
+                }
 
                 if (message.pendingIntentId != null) {
                     Spacer(modifier = Modifier.padding(vertical = 8.dp))
@@ -1125,13 +1150,13 @@ fun StatusIndicator(
                 try {
                     val appInfo = packageManager.getApplicationInfo(status.packageName, 0)
                     packageManager.getApplicationLabel(appInfo).toString()
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     status.packageName
                 }
             val appIcon =
                 try {
                     packageManager.getApplicationIcon(status.packageName)
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
 
@@ -1247,52 +1272,6 @@ fun ChatHistorySidePanel(
     }
 }
 
-class InlineAppScopingVisualTransformation(
-    private val installedApps: List<AppInfo>,
-    private val chipTextColor: Color,
-) : VisualTransformation {
-    private val regex: Regex? =
-        if (installedApps.isNotEmpty()) {
-            val appLabelsPattern = installedApps.joinToString("|") { Regex.escape(it.label) }
-            Regex("@($appLabelsPattern)\\b", RegexOption.IGNORE_CASE)
-        } else {
-            null
-        }
-
-    override fun filter(text: AnnotatedString): TransformedText {
-        val rawText = text.text
-        val currentRegex = regex
-        if (currentRegex == null || !rawText.contains("@")) {
-            return TransformedText(text, OffsetMapping.Identity)
-        }
-
-        val matches = currentRegex.findAll(rawText)
-
-        val annotatedString =
-            buildAnnotatedString {
-                var lastIndex = 0
-                matches.forEach { match ->
-                    append(rawText.substring(lastIndex, match.range.first))
-                    pushStringAnnotation(tag = "mention", annotation = match.value)
-                    withStyle(
-                        SpanStyle(
-                            color = chipTextColor,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                    ) {
-                        append(match.value)
-                    }
-                    pop()
-                    lastIndex = match.range.last + 1
-                }
-                if (lastIndex < rawText.length) {
-                    append(rawText.substring(lastIndex))
-                }
-            }
-        return TransformedText(annotatedString, OffsetMapping.Identity)
-    }
-}
-
 fun formatMessageText(
     text: String,
     installedApps: List<AppInfo>,
@@ -1332,23 +1311,30 @@ fun TvHistoryDialog(
             shape = MaterialTheme.shapes.large,
             modifier =
                 Modifier
-                    .width(400.dp)
-                    .heightIn(max = 400.dp)
+                    .width(460.dp)
                     .padding(16.dp),
             color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
-            Column(modifier = Modifier.padding(24.dp)) {
+            Column(
+                modifier =
+                    Modifier
+                        .padding(24.dp)
+                        .fillMaxWidth(),
+            ) {
                 Text(
                     text = stringResource(R.string.agent_demo_chat_history),
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
-                LazyColumn(modifier = Modifier.weight(1f)) {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     items(threads) { thread ->
                         val isSelected = thread.threadId == currentThread?.threadId
                         var isItemFocused by remember { mutableStateOf(false) }
                         val itemScale by animateFloatAsState(
-                            if (isItemFocused) 1.04f else 1.0f,
+                            if (isItemFocused) 1.03f else 1.0f,
                             label = "itemScale",
                         )
                         Surface(
@@ -1359,35 +1345,54 @@ fun TvHistoryDialog(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 6.dp)
                                     .scale(itemScale)
                                     .onFocusChanged { isItemFocused = it.isFocused },
                             shape = MaterialTheme.shapes.medium,
                             color =
-                                if (isItemFocused) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else if (isSelected) {
+                                if (isSelected) {
                                     MaterialTheme.colorScheme.surfaceVariant
                                 } else {
-                                    MaterialTheme.colorScheme.surface
+                                    MaterialTheme.colorScheme.surfaceContainerHigh
                                 },
+                            contentColor = MaterialTheme.colorScheme.onSurface,
                             border =
                                 if (isItemFocused) {
-                                    BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
                                 } else {
                                     null
                                 },
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = thread.llmModel.modelName,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                )
-                                Text(
-                                    text = "ID: ${thread.threadId.take(8)}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                            Row(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = thread.llmModel.modelName,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    )
+                                    Text(
+                                        text = "ID: ${thread.threadId.take(8)}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Active Chat",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier =
+                                            Modifier
+                                                .padding(start = 12.dp)
+                                                .size(20.dp),
+                                    )
+                                }
                             }
                         }
                     }
@@ -1402,6 +1407,8 @@ fun TvModelDialog(
     models: List<LlmModel>,
     selectedModel: LlmModel?,
     onModelSelected: (LlmModel) -> Unit,
+    isAppFunctionDebuggingEnabled: Boolean,
+    onToggleAppFunctionDebugging: (Boolean) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
@@ -1409,60 +1416,272 @@ fun TvModelDialog(
             shape = MaterialTheme.shapes.large,
             modifier =
                 Modifier
-                    .width(400.dp)
-                    .heightIn(max = 300.dp)
+                    .width(460.dp)
                     .padding(16.dp),
             color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
-            Column(modifier = Modifier.padding(24.dp)) {
+            Column(
+                modifier =
+                    Modifier
+                        .padding(24.dp)
+                        .fillMaxWidth(),
+            ) {
                 Text(
-                    text = "Select Model",
+                    text = "AI Behavior",
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(models) { model ->
+
+                Text(
+                    text = "Select Model",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    models.forEach { model ->
                         val isSelected = model == selectedModel
                         var isItemFocused by remember { mutableStateOf(false) }
                         val itemScale by animateFloatAsState(
-                            if (isItemFocused) 1.04f else 1.0f,
+                            if (isItemFocused) 1.03f else 1.0f,
                             label = "itemScale",
                         )
                         Surface(
                             onClick = {
                                 onModelSelected(model)
-                                onDismissRequest()
                             },
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 6.dp)
                                     .scale(itemScale)
                                     .onFocusChanged { isItemFocused = it.isFocused },
                             shape = MaterialTheme.shapes.medium,
                             color =
-                                if (isItemFocused) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else if (isSelected) {
+                                if (isSelected) {
                                     MaterialTheme.colorScheme.surfaceVariant
                                 } else {
-                                    MaterialTheme.colorScheme.surface
+                                    MaterialTheme.colorScheme.surfaceContainerHigh
                                 },
+                            contentColor = MaterialTheme.colorScheme.onSurface,
                             border =
                                 if (isItemFocused) {
-                                    BorderStroke(2.2.dp, MaterialTheme.colorScheme.primary)
+                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
                                 } else {
                                     null
                                 },
                         ) {
-                            Text(
-                                text = model.modelName,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(16.dp),
-                            )
+                            Row(
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    text = model.modelName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Selected",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                            }
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Debugging",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+
+                var isToggleFocused by remember { mutableStateOf(false) }
+                val toggleScale by animateFloatAsState(
+                    if (isToggleFocused) 1.03f else 1.0f,
+                    label = "toggleScale",
+                )
+                Surface(
+                    onClick = {
+                        onToggleAppFunctionDebugging(!isAppFunctionDebuggingEnabled)
+                    },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .scale(toggleScale)
+                            .onFocusChanged { isToggleFocused = it.isFocused },
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    border =
+                        if (isToggleFocused) {
+                            BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+                        } else {
+                            null
+                        },
+                ) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(
+                            modifier =
+                                Modifier
+                                    .weight(1f)
+                                    .padding(end = 12.dp),
+                        ) {
+                            Text(
+                                text = "AppFunction Debugging",
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                            Text(
+                                text = "Show parameters & results in chat",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(
+                            checked = isAppFunctionDebuggingEnabled,
+                            onCheckedChange = { onToggleAppFunctionDebugging(it) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class ParsedAppFunctionCall(
+    val packageName: String,
+    val functionId: String,
+    val arguments: Map<String, Any?>,
+    val response: String? = null,
+)
+
+fun parseMessageContent(content: String): Pair<String, List<ParsedAppFunctionCall>> {
+    val regex = Regex("@@AppFunctionCall:(.*?)@@")
+    val calls = mutableListOf<ParsedAppFunctionCall>()
+    var cleanText = content
+
+    regex.findAll(content).forEach { match ->
+        try {
+            val jsonStr = match.groupValues[1]
+            val json = JSONObject(jsonStr)
+            val packageName = json.getString("package")
+            val functionId = json.getString("function")
+            val argsJson = json.optJSONObject("args")
+            val argsMap = mutableMapOf<String, Any?>()
+            if (argsJson != null) {
+                val keys = argsJson.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    argsMap[key] = argsJson.get(key)
+                }
+            }
+            val responseStr =
+                if (json.has("response")) {
+                    json.optString("response")
+                        .takeIf { it.isNotBlank() }
+                } else {
+                    null
+                }
+            calls.add(ParsedAppFunctionCall(packageName, functionId, argsMap, responseStr))
+        } catch (e: Exception) {
+            Log.e("AgentDemoScreen", "Error parsing AppFunctionCall tag", e)
+        }
+        cleanText = cleanText.replace(match.value, "")
+    }
+
+    return Pair(cleanText.trim(), calls)
+}
+
+@Composable
+fun AppFunctionCallHintCard(
+    call: ParsedAppFunctionCall,
+    installedApps: List<AppInfo>,
+    modifier: Modifier = Modifier,
+) {
+    val appInfo =
+        remember(call.packageName, installedApps) {
+            installedApps.find { it.packageName == call.packageName }
+        }
+
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // 1. FX Icon (ic_rounded_function, tinted blue)
+                Icon(
+                    painter = painterResource(R.drawable.ic_rounded_function),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+
+                // 2. App Icon to its right
+                if (appInfo?.icon != null) {
+                    val bitmap =
+                        remember(appInfo.icon) {
+                            appInfo.icon.toBitmap(width = 48, height = 48).asImageBitmap()
+                        }
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+
+                // 3. Function ID
+                Text(
+                    text = call.functionId,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            if (call.arguments.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                val argsStr = call.arguments.entries.joinToString(", ") { "${it.key}=${it.value}" }
+                Text(
+                    text = "Parameters: $argsStr",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (!call.response.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Result: ${call.response}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }

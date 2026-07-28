@@ -22,8 +22,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
@@ -55,7 +55,6 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
-import kotlin.OptIn
 
 /**
  * Android TV Surface Paradigm Text Field.
@@ -114,12 +113,14 @@ fun TvSurfaceTextField(
         }
     }
 
+    val targetHeight = if (label != null) 64.dp else 56.dp
+
     if (isEditing) {
         var tfValue by remember {
             mutableStateOf(
                 androidx.compose.ui.text.input.TextFieldValue(
                     text = value,
-                    selection = androidx.compose.ui.text.TextRange(0, value.length),
+                    selection = TextRange(0, value.length),
                 ),
             )
         }
@@ -140,25 +141,7 @@ fun TvSurfaceTextField(
             placeholder = { Text(placeholder) },
             trailingIcon = trailingIcon,
             keyboardOptions = keyboardOptions,
-            keyboardActions =
-                KeyboardActions(
-                    onSend = {
-                        keyboardActions.onSend?.invoke(this)
-                        stopEditing()
-                    },
-                    onDone = {
-                        keyboardActions.onDone?.invoke(this)
-                        stopEditing()
-                    },
-                    onGo = {
-                        keyboardActions.onGo?.invoke(this)
-                        stopEditing()
-                    },
-                    onSearch = {
-                        keyboardActions.onSearch?.invoke(this)
-                        stopEditing()
-                    },
-                ),
+            keyboardActions = keyboardActions,
             shape = shape,
             colors =
                 OutlinedTextFieldDefaults.colors(
@@ -169,7 +152,7 @@ fun TvSurfaceTextField(
                 ),
             modifier =
                 modifier
-                    .defaultMinSize(minHeight = 52.dp)
+                    .height(targetHeight)
                     .focusRequester(textFieldFocusRequester)
                     .onFocusChanged { focusState ->
                         if (tfFocused && !focusState.isFocused) {
@@ -185,11 +168,10 @@ fun TvSurfaceTextField(
                                 }
                                 true
                             }
-                            Key.Enter, Key.NumPadEnter, Key.DirectionCenter -> {
+                            Key.Enter, Key.NumPadEnter -> {
                                 if (keyEvent.type == KeyEventType.KeyUp) {
                                     val actionScope =
-                                        object :
-                                            androidx.compose.foundation.text.KeyboardActionScope {
+                                        object : androidx.compose.foundation.text.KeyboardActionScope {
                                             override fun defaultKeyboardAction(imeAction: androidx.compose.ui.text.input.ImeAction) {}
                                         }
                                     if (keyboardActions.onSend != null) {
@@ -213,7 +195,7 @@ fun TvSurfaceTextField(
             onClick = { isEditing = true },
             modifier =
                 modifier
-                    .defaultMinSize(minHeight = 52.dp)
+                    .height(targetHeight)
                     .scale(scale)
                     .focusRequester(surfaceFocusRequester)
                     .onFocusChanged { isFocused = it.isFocused },
@@ -230,7 +212,7 @@ fun TvSurfaceTextField(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
