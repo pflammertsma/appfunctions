@@ -15,6 +15,7 @@
  */
 package com.example.appfunctions.agent.ui.tv.agentdemo
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -47,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -126,14 +128,13 @@ fun TvSettingsContent(
                     .imePadding()
                     .verticalScroll(rememberScrollState()),
         ) {
-            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-                Text(
-                    text = stringResource(id = R.string.settings_agent),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = 8.dp).semantics { heading() },
-                )
-            }
+            Text(
+                text = stringResource(id = R.string.settings_agent),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp).semantics { heading() },
+            )
+
             Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
                 Text(
                     text = stringResource(id = R.string.settings_gemini_api_key),
@@ -176,109 +177,60 @@ fun TvSettingsContent(
                 )
             }
 
-            var isAppsFocused by remember { mutableStateOf(false) }
-            Surface(
+            TvSettingsRow(
+                title = stringResource(id = R.string.manage_connected_apps),
                 onClick = onNavigateToConnectedApps,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .onFocusChanged { isAppsFocused = it.isFocused },
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                border =
-                    if (isAppsFocused) {
-                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                    } else {
-                        null
-                    },
-            ) {
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            text = stringResource(id = R.string.manage_connected_apps),
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    },
-                    leadingContent = {
-                        Icon(imageVector = Icons.Default.Apps, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                        )
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                )
-            }
+                leadingIcon = {
+                    Icon(imageVector = Icons.Default.Apps, contentDescription = null)
+                },
+            )
 
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                 color = MaterialTheme.colorScheme.outlineVariant,
             )
 
-            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-                Text(
-                    text = stringResource(id = R.string.settings_about),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = 8.dp).semantics { heading() },
-                )
-            }
+            Text(
+                text = stringResource(id = R.string.settings_about),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp).semantics { heading() },
+            )
 
-            var isLicensesFocused by remember { mutableStateOf(false) }
-            Surface(
+            TvSettingsRow(
+                title = stringResource(id = R.string.settings_open_source_licenses),
                 onClick = onOpenLicenses,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                        .onFocusChanged { isLicensesFocused = it.isFocused },
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                border =
-                    if (isLicensesFocused) {
-                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                    } else {
-                        null
-                    },
-            ) {
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            text = stringResource(id = R.string.settings_open_source_licenses),
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    },
-                    leadingContent = {
-                        Icon(imageVector = Icons.Default.Info, contentDescription = null)
-                    },
-                    trailingContent = {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                        )
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                )
-            }
+                leadingIcon = {
+                    Icon(imageVector = Icons.Default.Info, contentDescription = null)
+                },
+            )
         }
     }
 }
 
 @Composable
-private fun TvServiceTierDropdown(
-    selectedTier: ServiceTier,
-    onTierSelected: (ServiceTier) -> Unit,
+private fun TvSettingsRow(
+    title: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    applyDefaultPadding: Boolean = true,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+        )
+    },
 ) {
-    var showDialog by remember { mutableStateOf(false) }
     var isFocused by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(if (isFocused) 1.02f else 1.0f, label = "rowScale")
 
     Surface(
-        onClick = { showDialog = true },
+        onClick = onClick,
         modifier =
-            Modifier
+            (if (applyDefaultPadding) Modifier.padding(horizontal = 24.dp, vertical = 8.dp) else Modifier)
+                .then(modifier)
+                .scale(scale)
                 .fillMaxWidth()
                 .onFocusChanged { isFocused = it.isFocused },
         shape = MaterialTheme.shapes.extraLarge,
@@ -290,36 +242,53 @@ private fun TvServiceTierDropdown(
                 BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             },
     ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(id = selectedTier.labelRes()),
-                style = MaterialTheme.typography.bodyLarge,
-                color =
-                    if (isFocused) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint =
-                    if (isFocused) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-            )
-        }
+        ListItem(
+            headlineContent = {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            },
+            leadingContent = leadingIcon,
+            trailingContent = trailingIcon,
+            colors =
+                ListItemDefaults.colors(
+                    containerColor = Color.Transparent,
+                    headlineColor =
+                        if (isFocused) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    leadingIconColor =
+                        if (isFocused) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    trailingIconColor =
+                        if (isFocused) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                ),
+        )
     }
+}
+
+@Composable
+private fun TvServiceTierDropdown(
+    selectedTier: ServiceTier,
+    onTierSelected: (ServiceTier) -> Unit,
+) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    TvSettingsRow(
+        title = stringResource(id = selectedTier.labelRes()),
+        onClick = { showDialog = true },
+        applyDefaultPadding = false,
+    )
 
     if (showDialog) {
         Dialog(onDismissRequest = { showDialog = false }) {
