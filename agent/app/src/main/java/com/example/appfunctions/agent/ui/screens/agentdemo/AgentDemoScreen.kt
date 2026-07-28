@@ -101,8 +101,10 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
@@ -149,6 +151,7 @@ import com.mikepenz.markdown.m3.Markdown
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 @Composable
 fun AgentDemoScreen(viewModel: AgentDemoViewModel = hiltViewModel()) {
@@ -652,12 +655,17 @@ fun AgentDemoLoadedScreen(
                                     .onFocusChanged { isOverlayFocused = it.isFocused },
                             shape = CircleShape,
                             color =
-                                if (isOverlayFocused) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceBright,
+                                if (isOverlayFocused) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceBright
+                                },
                             border =
                                 if (isOverlayFocused) {
                                     BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
-                                } else null,
+                                } else {
+                                    null
+                                },
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center,
@@ -667,8 +675,11 @@ fun AgentDemoLoadedScreen(
                                     imageVector = Icons.Default.Layers,
                                     contentDescription = "Overlay Mode",
                                     tint =
-                                        if (isOverlayFocused) MaterialTheme.colorScheme.onPrimaryContainer
-                                        else MaterialTheme.colorScheme.onSurface,
+                                        if (isOverlayFocused) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
                                 )
                             }
                         }
@@ -1007,14 +1018,14 @@ fun MessageBubble(
     val isError = message.processingStatus == MessageProcessingStatus.FAILED
     val backgroundColor =
         when {
-            isError -> MaterialTheme.colorScheme.errorContainer
-            message.role == MessageRole.USER -> MaterialTheme.colorScheme.primaryContainer
-            else -> MaterialTheme.colorScheme.surfaceBright
+            isError -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.80f)
+            message.role == MessageRole.USER -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.80f)
+            else -> MaterialTheme.colorScheme.surfaceBright.copy(alpha = 0.75f)
         }
     val textColor =
         when {
-            isError -> MaterialTheme.colorScheme.onErrorContainer
-            message.role == MessageRole.USER -> MaterialTheme.colorScheme.onPrimaryContainer
+            isError -> MaterialTheme.colorScheme.error
+            message.role == MessageRole.USER -> MaterialTheme.colorScheme.onSurface
             else -> MaterialTheme.colorScheme.onSurface
         }
 
@@ -1028,7 +1039,7 @@ fun MessageBubble(
         Surface(
             shape = MaterialTheme.shapes.large,
             color = backgroundColor,
-            shadowElevation = if (message.role == MessageRole.ASSISTANT) 1.dp else 0.dp,
+            shadowElevation = 0.dp,
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
                 val bubbleContent = @Composable {
@@ -1577,6 +1588,7 @@ fun TvModelDialog(
                 }
             }
         }
+    }
 }
 
 @Composable
@@ -1601,9 +1613,10 @@ fun TvOverlayAppDialog(
             color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             Column(
-                modifier = Modifier
-                    .padding(24.dp)
-                    .fillMaxWidth()
+                modifier =
+                    Modifier
+                        .padding(24.dp)
+                        .fillMaxWidth(),
             ) {
                 Text(
                     text = "Select app to launch with overlay",
@@ -1644,12 +1657,15 @@ fun TvOverlayAppDialog(
                                 border =
                                     if (isItemFocused) {
                                         BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
-                                    } else null,
+                                    } else {
+                                        null
+                                    },
                             ) {
                                 Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
@@ -1664,7 +1680,7 @@ fun TvOverlayAppDialog(
                                             modifier =
                                                 Modifier
                                                     .size(40.dp)
-                                                    .background(Color.Gray)
+                                                    .background(Color.Gray),
                                         )
                                     }
                                     Column(modifier = Modifier.weight(1f)) {
@@ -1704,9 +1720,10 @@ fun TvOverlayPermissionDialog(
             color = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             Column(
-                modifier = Modifier
-                    .padding(24.dp)
-                    .fillMaxWidth(),
+                modifier =
+                    Modifier
+                        .padding(24.dp)
+                        .fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Row(
@@ -1768,7 +1785,9 @@ fun TvOverlayPermissionDialog(
                         border =
                             if (isCancelFocused) {
                                 BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                            } else null,
+                            } else {
+                                null
+                            },
                     ) {
                         Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
                             Text(
@@ -1798,7 +1817,9 @@ fun TvOverlayPermissionDialog(
                         border =
                             if (isOpenFocused) {
                                 BorderStroke(2.dp, MaterialTheme.colorScheme.onPrimaryContainer)
-                            } else null,
+                            } else {
+                                null
+                            },
                     ) {
                         Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
                             Text(
@@ -1861,15 +1882,16 @@ fun AppFunctionCallHintCard(
     installedApps: List<AppInfo>,
     modifier: Modifier = Modifier,
 ) {
-    val appInfo = remember(call.packageName, installedApps) {
-        installedApps.find { it.packageName == call.packageName }
-    }
+    val appInfo =
+        remember(call.packageName, installedApps) {
+            installedApps.find { it.packageName == call.packageName }
+        }
 
     Surface(
         shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = modifier.fillMaxWidth().padding(vertical = 4.dp)
+        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.60f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        modifier = modifier.fillMaxWidth().padding(vertical = 4.dp),
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1878,19 +1900,20 @@ fun AppFunctionCallHintCard(
                     painter = painterResource(R.drawable.ic_rounded_function),
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(modifier = Modifier.width(6.dp))
 
                 // 2. App Icon to its right
                 if (appInfo?.icon != null) {
-                    val bitmap = remember(appInfo.icon) {
-                        appInfo.icon.toBitmap(width = 48, height = 48).asImageBitmap()
-                    }
+                    val bitmap =
+                        remember(appInfo.icon) {
+                            appInfo.icon.toBitmap(width = 48, height = 48).asImageBitmap()
+                        }
                     Image(
                         bitmap = bitmap,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                 }
@@ -1900,7 +1923,7 @@ fun AppFunctionCallHintCard(
                     text = call.functionId,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
             }
             if (call.arguments.isNotEmpty()) {
@@ -1909,7 +1932,7 @@ fun AppFunctionCallHintCard(
                 Text(
                     text = "Parameters: $argsStr",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
                 )
             }
             if (!call.response.isNullOrEmpty()) {
@@ -1917,9 +1940,9 @@ fun AppFunctionCallHintCard(
                 Text(
                     text = "Result: ${call.response}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
                     maxLines = 3,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
         }

@@ -22,15 +22,16 @@ import android.graphics.PixelFormat
 import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
-import android.view.Gravity
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
+import androidx.activity.setViewTreeOnBackPressedDispatcherOwner
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,12 +53,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -68,9 +66,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -85,11 +81,9 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import androidx.activity.setViewTreeOnBackPressedDispatcherOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
@@ -97,12 +91,12 @@ import androidx.tv.material3.ExperimentalTvMaterial3Api
 import com.example.appfunctions.agent.MainActivity
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.data.SettingsRepository
-import com.example.appfunctions.agent.domain.AgentOrchestrator
-import com.example.appfunctions.agent.domain.AgentStatus
-import com.example.appfunctions.agent.domain.appfunction.AppInfo
 import com.example.appfunctions.agent.data.db.entities.MessageEntity
 import com.example.appfunctions.agent.data.db.entities.MessageProcessingStatus
 import com.example.appfunctions.agent.data.db.entities.MessageRole
+import com.example.appfunctions.agent.domain.AgentOrchestrator
+import com.example.appfunctions.agent.domain.AgentStatus
+import com.example.appfunctions.agent.domain.appfunction.AppInfo
 import com.example.appfunctions.agent.domain.appfunction.GetInstalledAppsUseCase
 import com.example.appfunctions.agent.domain.chat.GetChatHistoryUseCase
 import com.example.appfunctions.agent.domain.chat.ManageThreadsUseCase
@@ -135,15 +129,22 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 class ChatOverlayService : Service() {
-
     @Inject lateinit var manageThreadsUseCase: ManageThreadsUseCase
+
     @Inject lateinit var getChatHistoryUseCase: GetChatHistoryUseCase
+
     @Inject lateinit var sendMessageUseCase: SendMessageUseCase
+
     @Inject lateinit var agentOrchestrator: AgentOrchestrator
+
     @Inject lateinit var getInstalledAppsUseCase: GetInstalledAppsUseCase
+
     @Inject lateinit var observeActivePendingIntentsUseCase: ObserveActivePendingIntentsUseCase
+
     @Inject lateinit var consumePendingIntentUseCase: ConsumePendingIntentUseCase
+
     @Inject lateinit var launchPendingIntentUseCase: LaunchPendingIntentUseCase
+
     @Inject lateinit var settingsRepository: SettingsRepository
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -151,9 +152,16 @@ class ChatOverlayService : Service() {
     private var composeView: ComposeView? = null
     private lateinit var overlayOwner: OverlayLifecycleOwner
 
+    @Suppress("ktlint:standard:backing-property-naming")
     private val _targetPackageName = MutableStateFlow<String?>(null)
+
+    @Suppress("ktlint:standard:backing-property-naming")
     private val _targetAppLabel = MutableStateFlow<String>("")
+
+    @Suppress("ktlint:standard:backing-property-naming")
     private val _messages = MutableStateFlow<List<MessageEntity>>(emptyList())
+
+    @Suppress("ktlint:standard:backing-property-naming")
     private val _currentThreadId = MutableStateFlow<String?>(null)
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -167,10 +175,11 @@ class ChatOverlayService : Service() {
             return
         }
 
-        overlayOwner = OverlayLifecycleOwner().apply {
-            onCreate()
-            onStart()
-        }
+        overlayOwner =
+            OverlayLifecycleOwner().apply {
+                onCreate()
+                onStart()
+            }
 
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         composeView =
@@ -194,70 +203,69 @@ class ChatOverlayService : Service() {
                     }
                 }
                 setContent {
-                AppFunctionsAgentTheme {
-                    val targetAppLabel by _targetAppLabel.collectAsState()
-                    val targetPackageName by _targetPackageName.collectAsState()
-                    val messages by _messages.collectAsState()
-                    val status by agentOrchestrator.status.collectAsState(initial = AgentStatus.Idle)
-                    val activePendingActionIds by observeActivePendingIntentsUseCase().collectAsState(initial = emptySet())
-                    val installedApps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
-                    val isAppFunctionDebuggingEnabled by settingsRepository.appFunctionDebuggingEnabled.collectAsState(initial = true)
+                    AppFunctionsAgentTheme {
+                        val targetAppLabel by _targetAppLabel.collectAsState()
+                        val targetPackageName by _targetPackageName.collectAsState()
+                        val messages by _messages.collectAsState()
+                        val status by agentOrchestrator.status.collectAsState(initial = AgentStatus.Idle)
+                        val activePendingActionIds by observeActivePendingIntentsUseCase().collectAsState(initial = emptySet())
+                        val installedApps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
 
-                    var appsList by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
-                    LaunchedEffect(Unit) {
-                        appsList = getInstalledAppsUseCase()
-                    }
+                        var appsList by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
+                        LaunchedEffect(Unit) {
+                            appsList = getInstalledAppsUseCase()
+                        }
 
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.BottomCenter,
-                    ) {
-                        OverlayContent(
-                            targetAppLabel = targetAppLabel,
-                            targetPackageName = targetPackageName,
-                            messages = messages,
-                            installedApps = appsList,
-                            status = status,
-                            activePendingActionIds = activePendingActionIds,
-                            isAppFunctionDebuggingEnabled = isAppFunctionDebuggingEnabled,
-                            onSendMessage = { text ->
-                                val threadId = _currentThreadId.value
-                                if (threadId != null) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.BottomCenter,
+                        ) {
+                            OverlayContent(
+                                targetAppLabel = targetAppLabel,
+                                targetPackageName = targetPackageName,
+                                messages = messages,
+                                installedApps = appsList,
+                                status = status,
+                                activePendingActionIds = activePendingActionIds,
+                                onSendMessage = { text ->
+                                    val threadId = _currentThreadId.value
+                                    if (threadId != null) {
+                                        serviceScope.launch {
+                                            sendMessageUseCase(
+                                                threadId = threadId,
+                                                role = MessageRole.USER,
+                                                textContent = text,
+                                                processingStatus = MessageProcessingStatus.PENDING_AGENT_RESPONSE,
+                                                targetPackageName = targetPackageName,
+                                            )
+                                        }
+                                    }
+                                },
+                                onConfirmAction = { actionId ->
                                     serviceScope.launch {
-                                        sendMessageUseCase(
-                                            threadId = threadId,
-                                            role = MessageRole.USER,
-                                            textContent = text,
-                                            processingStatus = MessageProcessingStatus.PENDING_AGENT_RESPONSE,
-                                            targetPackageName = targetPackageName,
-                                        )
+                                        val pendingIntent = consumePendingIntentUseCase(actionId)
+                                        if (pendingIntent != null) {
+                                            launchPendingIntentUseCase(pendingIntent)
+                                        }
                                     }
-                                }
-                            },
-                            onConfirmAction = { actionId ->
-                                serviceScope.launch {
-                                    val pendingIntent = consumePendingIntentUseCase(actionId)
-                                    if (pendingIntent != null) {
-                                        launchPendingIntentUseCase(pendingIntent)
-                                    }
-                                }
-                            },
-                            onClose = {
-                                exitOverlayMode()
-                            }
-                        )
+                                },
+                                onClose = {
+                                    exitOverlayMode()
+                                },
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            0, // Focusable: do NOT set FLAG_NOT_FOCUSABLE so text input and D-Pad work
-            PixelFormat.TRANSLUCENT
-        )
+        val params =
+            WindowManager.LayoutParams(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                0, // Focusable: do NOT set FLAG_NOT_FOCUSABLE so text input and D-Pad work
+                PixelFormat.TRANSLUCENT,
+            )
 
         windowManager?.addView(composeView, params)
 
@@ -274,7 +282,11 @@ class ChatOverlayService : Service() {
         }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int,
+    ): Int {
         val pkgName = intent?.getStringExtra(EXTRA_TARGET_PACKAGE_NAME)
         val label = intent?.getStringExtra(EXTRA_TARGET_APP_LABEL)
         if (pkgName != null) {
@@ -295,9 +307,10 @@ class ChatOverlayService : Service() {
         }
         stopSelf()
 
-        val mainIntent = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-        }
+        val mainIntent =
+            Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            }
         startActivity(mainIntent)
     }
 
@@ -333,7 +346,6 @@ private fun OverlayContent(
     installedApps: List<AppInfo>,
     status: AgentStatus,
     activePendingActionIds: Set<String>,
-    isAppFunctionDebuggingEnabled: Boolean,
     onSendMessage: (String) -> Unit,
     onConfirmAction: (String) -> Unit,
     onClose: () -> Unit,
@@ -373,14 +385,14 @@ private fun OverlayContent(
                         false
                     }
                 },
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.96f),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.92f),
         contentColor = MaterialTheme.colorScheme.onSurface,
         shape = RoundedCornerShape(32.dp),
         shadowElevation = 20.dp,
     ) {
         val topPadding by animateDpAsState(
             targetValue = if (isListExpanded) 0.dp else 24.dp,
-            label = "topPadding"
+            label = "topPadding",
         )
         Column(
             modifier =
@@ -401,9 +413,10 @@ private fun OverlayContent(
                             reverseLayout = true,
                             contentPadding = PaddingValues(top = 24.dp, bottom = 4.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 260.dp)
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 260.dp),
                         ) {
                             if (status != AgentStatus.Idle) {
                                 item {
@@ -414,13 +427,12 @@ private fun OverlayContent(
 
                             items(
                                 items = messages.asReversed(),
-                                key = { it.messageId }
+                                key = { it.messageId },
                             ) { message ->
                                 MessageBubble(
                                     message = message,
                                     isValidAction = message.pendingIntentId in activePendingActionIds,
                                     installedApps = installedApps,
-                                    showAppFunctionDebugDetails = isAppFunctionDebuggingEnabled,
                                     onConfirmAction = onConfirmAction,
                                 )
                             }
@@ -459,7 +471,9 @@ private fun OverlayContent(
                                             if (!moved) {
                                                 coroutineScope.launch { listState.animateScrollBy(150f) }
                                                 true
-                                            } else false
+                                            } else {
+                                                false
+                                            }
                                         }
                                     }
                                     Key.DirectionDown -> {
@@ -477,7 +491,9 @@ private fun OverlayContent(
                                                     coroutineScope.launch { listState.animateScrollBy(-150f) }
                                                 }
                                                 true
-                                            } else false
+                                            } else {
+                                                false
+                                            }
                                         }
                                     }
                                     Key.PageUp -> {
@@ -490,7 +506,9 @@ private fun OverlayContent(
                                     }
                                     else -> false
                                 }
-                            } else false
+                            } else {
+                                false
+                            }
                         }
                         .onKeyEvent { keyEvent ->
                             if (keyEvent.key == Key.Back || keyEvent.key == Key.Escape) {
@@ -498,7 +516,9 @@ private fun OverlayContent(
                                     onClose()
                                 }
                                 true
-                            } else false
+                            } else {
+                                false
+                            }
                         },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -513,18 +533,20 @@ private fun OverlayContent(
                     TvSurfaceTextField(
                         value = messageText.text,
                         placeholder = stringResource(R.string.agent_demo_ask_agent),
-                        modifier = Modifier
-                            .focusRequester(inputFocusRequester)
-                            .fillMaxWidth(),
+                        modifier =
+                            Modifier
+                                .focusRequester(inputFocusRequester)
+                                .fillMaxWidth(),
                         onValueChange = { newStr ->
                             messageText = TextFieldValue(newStr)
                         },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                        keyboardActions = KeyboardActions(
-                            onSend = {
-                                sendMessage()
-                            }
-                        ),
+                        keyboardActions =
+                            KeyboardActions(
+                                onSend = {
+                                    sendMessage()
+                                },
+                            ),
                     )
                 }
 
@@ -532,36 +554,40 @@ private fun OverlayContent(
                 var isSendFocused by remember { mutableStateOf(false) }
                 val sendScale by animateFloatAsState(
                     if (isSendFocused) 1.05f else 1.0f,
-                    label = "sendScale"
+                    label = "sendScale",
                 )
                 Surface(
                     onClick = sendMessage,
                     enabled = isSendEnabled,
-                    modifier = Modifier
-                        .size(52.dp)
-                        .scale(sendScale)
-                        .onFocusChanged { isSendFocused = it.isFocused },
+                    modifier =
+                        Modifier
+                            .size(52.dp)
+                            .scale(sendScale)
+                            .onFocusChanged { isSendFocused = it.isFocused },
                     shape = CircleShape,
-                    color = when {
-                        !isSendEnabled -> MaterialTheme.colorScheme.surfaceBright
-                        isSendFocused -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.primaryContainer
-                    },
-                    border = if (isSendFocused) {
-                        BorderStroke(2.5.dp, MaterialTheme.colorScheme.onPrimaryContainer)
-                    } else {
-                        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    },
+                    color =
+                        when {
+                            !isSendEnabled -> MaterialTheme.colorScheme.surfaceBright
+                            isSendFocused -> MaterialTheme.colorScheme.primary
+                            else -> MaterialTheme.colorScheme.primaryContainer
+                        },
+                    border =
+                        if (isSendFocused) {
+                            BorderStroke(2.5.dp, MaterialTheme.colorScheme.onPrimaryContainer)
+                        } else {
+                            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        },
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = "Send",
-                            tint = when {
-                                !isSendEnabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                                isSendFocused -> MaterialTheme.colorScheme.onPrimary
-                                else -> MaterialTheme.colorScheme.onPrimaryContainer
-                            }
+                            tint =
+                                when {
+                                    !isSendEnabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                    isSendFocused -> MaterialTheme.colorScheme.onPrimary
+                                    else -> MaterialTheme.colorScheme.onPrimaryContainer
+                                },
                         )
                     }
                 }

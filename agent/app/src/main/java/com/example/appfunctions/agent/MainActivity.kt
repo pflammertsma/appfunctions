@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
                 android.content.Intent(
                     this,
                     com.example.appfunctions.agent.ui.overlay.ChatOverlayService::class.java,
-                )
+                ),
             )
         } catch (e: Exception) {
             // Ignore if service stop fails

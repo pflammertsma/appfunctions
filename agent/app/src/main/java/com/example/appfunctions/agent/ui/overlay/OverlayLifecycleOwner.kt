@@ -37,7 +37,6 @@ class OverlayLifecycleOwner :
     ViewModelStoreOwner,
     SavedStateRegistryOwner,
     OnBackPressedDispatcherOwner {
-
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
     override val viewModelStore = ViewModelStore()
