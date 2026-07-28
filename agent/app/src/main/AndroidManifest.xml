@@ -24,6 +24,7 @@
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
@@ -105,6 +106,10 @@
                 <action android:name="android.app.appfunctions.AppFunctionService" />
             </intent-filter>
         </service>
+
+        <service
+            android:name="com.example.appfunctions.agent.ui.overlay.ChatOverlayService"
+            android:exported="false" />
 
         <property
             android:name="android.app.appfunctions.app_metadata"

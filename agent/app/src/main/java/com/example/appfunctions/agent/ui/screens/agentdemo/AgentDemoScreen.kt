@@ -15,7 +15,10 @@
  */
 package com.example.appfunctions.agent.ui.screens.agentdemo
 
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandHorizontally
@@ -55,6 +58,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Warning
@@ -192,12 +196,15 @@ fun AgentDemoLoadedScreen(
     initialSidePanelVisible: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     var messageText by remember { mutableStateOf(TextFieldValue("")) }
     var isSidePanelVisible by remember { mutableStateOf(initialSidePanelVisible) }
     var selectedAppPackageName by remember { mutableStateOf<String?>(null) }
     val isTv = rememberFormFactor() == FormFactor.TV
     var showHistoryDialog by remember { mutableStateOf(false) }
+    var showOverlayAppDialog by remember { mutableStateOf(false) }
+    var showOverlayPermissionDialog by remember { mutableStateOf(false) }
 
     val inputFocusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
@@ -623,6 +630,48 @@ fun AgentDemoLoadedScreen(
                             onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
                         )
 
+                        // Overlay Mode Button
+                        var isOverlayFocused by remember { mutableStateOf(false) }
+                        val overlayScale by animateFloatAsState(
+                            if (isOverlayFocused) 1.1f else 1.0f,
+                            label = "overlayScale",
+                        )
+                        Surface(
+                            onClick = {
+                                if (!Settings.canDrawOverlays(context)) {
+                                    showOverlayPermissionDialog = true
+                                } else {
+                                    showOverlayAppDialog = true
+                                }
+                            },
+                            modifier =
+                                Modifier
+                                    .size(52.dp)
+                                    .scale(overlayScale)
+                                    .onFocusChanged { isOverlayFocused = it.isFocused },
+                            shape = CircleShape,
+                            color =
+                                if (isOverlayFocused) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surfaceBright,
+                            border =
+                                if (isOverlayFocused) {
+                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+                                } else null,
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize(),
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Layers,
+                                    contentDescription = "Overlay Mode",
+                                    tint =
+                                        if (isOverlayFocused) MaterialTheme.colorScheme.onPrimaryContainer
+                                        else MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
+
                         // History Button
                         var isHistoryFocused by remember { mutableStateOf(false) }
                         val historyScale by animateFloatAsState(
@@ -724,6 +773,65 @@ fun AgentDemoLoadedScreen(
             currentThread = uiState.currentThread,
             onThreadSelected = { onEvent(AgentUiEvent.OnThreadSelected(it)) },
             onDismissRequest = { showHistoryDialog = false },
+        )
+    }
+
+    if (showOverlayAppDialog) {
+        val context = LocalContext.current
+        TvOverlayAppDialog(
+            installedApps = uiState.installedApps,
+            onAppSelected = { app ->
+                showOverlayAppDialog = false
+                if (!Settings.canDrawOverlays(context)) {
+                    showOverlayPermissionDialog = true
+                    return@TvOverlayAppDialog
+                }
+                val launchIntent =
+                    context.packageManager.getLaunchIntentForPackage(app.packageName)?.apply {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                if (launchIntent != null) {
+                    context.startActivity(launchIntent)
+                    val overlayIntent =
+                        Intent(
+                            context,
+                            com.example.appfunctions.agent.ui.overlay.ChatOverlayService::class.java,
+                        ).apply {
+                            putExtra(
+                                com.example.appfunctions.agent.ui.overlay.ChatOverlayService.EXTRA_TARGET_PACKAGE_NAME,
+                                app.packageName,
+                            )
+                            putExtra(
+                                com.example.appfunctions.agent.ui.overlay.ChatOverlayService.EXTRA_TARGET_APP_LABEL,
+                                app.label,
+                            )
+                        }
+                    context.startService(overlayIntent)
+                }
+            },
+            onDismissRequest = { showOverlayAppDialog = false },
+        )
+    }
+
+    if (showOverlayPermissionDialog) {
+        val context = LocalContext.current
+        TvOverlayPermissionDialog(
+            onOpenSettings = {
+                showOverlayPermissionDialog = false
+                try {
+                    val permIntent =
+                        Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:${context.packageName}"),
+                        ).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                    context.startActivity(permIntent)
+                } catch (e: Exception) {
+                    android.util.Log.e("AgentDemoScreen", "Cannot open overlay permission settings", e)
+                }
+            },
+            onDismissRequest = { showOverlayPermissionDialog = false },
         )
     }
 }
@@ -1460,6 +1568,331 @@ fun TvModelDialog(
                         }
                     }
                 }
+            }
+        }
+}
+
+@Composable
+fun TvOverlayAppDialog(
+    installedApps: List<AppInfo>,
+    onAppSelected: (AppInfo) -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            modifier =
+                Modifier
+                    .width(460.dp)
+                    .padding(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = "Select App for Overlay Mode",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp),
+                )
+                if (installedApps.isEmpty()) {
+                    Text(
+                        text = "No AppFunction-compatible apps found.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        items(installedApps) { app ->
+                            var isItemFocused by remember { mutableStateOf(false) }
+                            val itemScale by animateFloatAsState(
+                                if (isItemFocused) 1.03f else 1.0f,
+                                label = "itemScale",
+                            )
+                            Surface(
+                                onClick = {
+                                    onAppSelected(app)
+                                    onDismissRequest()
+                                },
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .scale(itemScale)
+                                        .onFocusChanged { isItemFocused = it.isFocused },
+                                shape = MaterialTheme.shapes.medium,
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                contentColor = MaterialTheme.colorScheme.onSurface,
+                                border =
+                                    if (isItemFocused) {
+                                        BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
+                                    } else null,
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = app.label,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                        Text(
+                                            text = app.packageName,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TvOverlayPermissionDialog(
+    onOpenSettings: () -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            modifier =
+                Modifier
+                    .width(480.dp)
+                    .padding(16.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Icon(
+                                imageVector = Icons.Default.Layers,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Enable Overlay Mode",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+
+                Text(
+                    text =
+                        "Overlay Mode displays the testing agent chat interface on top of other applications.\n\n" +
+                            "To use this feature, Google TV requires you to grant the 'Display over other apps' permission.\n\n" +
+                            "1. Select 'Open Settings' below.\n" +
+                            "2. Enable the toggle for 'AppFunctions Agent'.\n" +
+                            "3. Press Back on your remote to return here.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    var isCancelFocused by remember { mutableStateOf(false) }
+                    val cancelScale by animateFloatAsState(
+                        if (isCancelFocused) 1.05f else 1.0f,
+                        label = "cancelScale",
+                    )
+                    Surface(
+                        onClick = onDismissRequest,
+                        modifier =
+                            Modifier
+                                .scale(cancelScale)
+                                .onFocusChanged { isCancelFocused = it.isFocused },
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceBright,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        border =
+                            if (isCancelFocused) {
+                                BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                            } else null,
+                    ) {
+                        Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
+                            Text(
+                                text = "Cancel",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    var isOpenFocused by remember { mutableStateOf(false) }
+                    val openScale by animateFloatAsState(
+                        if (isOpenFocused) 1.05f else 1.0f,
+                        label = "openScale",
+                    )
+                    Surface(
+                        onClick = onOpenSettings,
+                        modifier =
+                            Modifier
+                                .scale(openScale)
+                                .onFocusChanged { isOpenFocused = it.isFocused },
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        border =
+                            if (isOpenFocused) {
+                                BorderStroke(2.dp, MaterialTheme.colorScheme.onPrimaryContainer)
+                            } else null,
+                    ) {
+                        Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)) {
+                            Text(
+                                text = "Open Settings",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class ParsedAppFunctionCall(
+    val packageName: String,
+    val functionId: String,
+    val arguments: Map<String, Any?>,
+    val response: String? = null,
+)
+
+fun parseMessageContent(content: String): Pair<String, List<ParsedAppFunctionCall>> {
+    android.util.Log.d("JetskiDebug", "parseMessageContent input: $content")
+    val regex = Regex("@@AppFunctionCall:(.*?)@@")
+    val calls = mutableListOf<ParsedAppFunctionCall>()
+    var cleanText = content
+
+    regex.findAll(content).forEach { match ->
+        try {
+            val jsonStr = match.groupValues[1]
+            val json = JSONObject(jsonStr)
+            val packageName = json.getString("package")
+            val functionId = json.getString("function")
+            val argsJson = json.optJSONObject("args")
+            val argsMap = mutableMapOf<String, Any?>()
+            if (argsJson != null) {
+                val keys = argsJson.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    argsMap[key] = argsJson.get(key)
+                }
+            }
+            val responseStr = if (json.has("response")) json.optString("response").takeIf { it.isNotBlank() } else null
+            calls.add(ParsedAppFunctionCall(packageName, functionId, argsMap, responseStr))
+        } catch (e: Exception) {
+            android.util.Log.e("AgentDemoScreen", "Error parsing AppFunctionCall tag", e)
+        }
+        cleanText = cleanText.replace(match.value, "")
+    }
+
+    val result = Pair(cleanText.trim(), calls)
+    android.util.Log.d("JetskiDebug", "parseMessageContent output: cleanText='${result.first}', callsSize=${result.second.size}")
+    return result
+}
+
+@Composable
+fun AppFunctionCallHintCard(
+    call: ParsedAppFunctionCall,
+    installedApps: List<AppInfo>,
+    modifier: Modifier = Modifier,
+) {
+    val appInfo = remember(call.packageName, installedApps) {
+        installedApps.find { it.packageName == call.packageName }
+    }
+
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier.fillMaxWidth().padding(vertical = 4.dp)
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // 1. FX Icon (ic_rounded_function, tinted blue)
+                Icon(
+                    painter = painterResource(R.drawable.ic_rounded_function),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+
+                // 2. App Icon to its right
+                if (appInfo?.icon != null) {
+                    val bitmap = remember(appInfo.icon) {
+                        appInfo.icon.toBitmap(width = 48, height = 48).asImageBitmap()
+                    }
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+
+                // 3. Function ID
+                Text(
+                    text = call.functionId,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            if (call.arguments.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                val argsStr = call.arguments.entries.joinToString(", ") { "${it.key}=${it.value}" }
+                Text(
+                    text = "Parameters: $argsStr",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (!call.response.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Result: ${call.response}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
             }
         }
     }

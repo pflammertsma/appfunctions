@@ -40,6 +40,38 @@ use the `run_privileged.sh` script.
 ./run_privileged.sh --build --flavor retail --api-key YOUR_API_KEY
 ```
 
+### Android TV / Google TV Keyboard Configuration
+
+When developing or testing on Android TV / Google TV emulators using a physical workstation keyboard, you may want to disable the on-screen keyboard (Gboard) and Voice Input popups for a more natural typing experience:
+
+```bash
+# Disable Gboard (On-screen keyboard)
+adb shell pm disable-user --user 0 com.google.android.inputmethod.latin
+
+# Disable Google Assistant Voice Input (Katniss)
+adb shell pm disable-user --user 0 com.google.android.katniss
+
+# Disable Google TTS Voice Input Method Service (Speech popup)
+adb shell pm disable --user 0 com.google.android.tts/com.google.android.apps.speech.tts.googletts.settings.asr.voiceime.VoiceInputMethodService
+```
+
+To re-enable them later:
+```bash
+adb shell pm enable com.google.android.inputmethod.latin
+adb shell pm enable com.google.android.katniss
+adb shell pm enable com.google.android.tts/com.google.android.apps.speech.tts.googletts.settings.asr.voiceime.VoiceInputMethodService
+```
+
+### Overlay Mode Permission (Android TV)
+
+To display the chat interface as a screen overlay on top of another app, the `SYSTEM_ALERT_WINDOW` ("Display over other apps") permission is required. 
+If not granted, clicking an application from the **Overlay Mode** dialog will automatically open the Google TV Special Access settings screen so you can enable it.
+
+You can also grant it via ADB:
+```bash
+adb shell appops set com.example.appfunctions.agent SYSTEM_ALERT_WINDOW allow
+```
+
 ## Testing
 
 Always run relevant tests to verify your changes before committing.
