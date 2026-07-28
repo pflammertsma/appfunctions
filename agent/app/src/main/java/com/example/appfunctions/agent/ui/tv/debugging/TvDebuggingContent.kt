@@ -368,6 +368,7 @@ private fun TvAppListScreen(
             Text(
                 text = stringResource(id = R.string.debugging_installed_apps_title),
                 style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.semantics { heading() },
             )
@@ -410,9 +411,12 @@ private fun TvAppListScreen(
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Adaptive(minSize = 260.dp),
-                contentPadding = PaddingValues(start = 8.dp, end = 24.dp, top = 8.dp, bottom = 48.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+//                contentPadding = PaddingValues(start = 8.dp, end = 24.dp, top = 8.dp, bottom = 48.dp),
+//                horizontalArrangement = Arrangement.spacedBy(16.dp),
+//                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxSize(),
             ) {
                 uiState.filteredApps.sections.forEachIndexed { sectionIndex, section ->

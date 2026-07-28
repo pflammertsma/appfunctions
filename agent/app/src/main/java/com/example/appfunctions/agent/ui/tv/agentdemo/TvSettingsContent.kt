@@ -120,7 +120,7 @@ fun TvSettingsContent(
             modifier =
                 Modifier.fillMaxSize()
                     .padding(paddingValues)
-                    .padding(start = 80.dp, end = 48.dp, bottom = 48.dp)
+                    .padding(start = 56.dp)
                     .consumeWindowInsets(paddingValues)
                     .imePadding()
                     .verticalScroll(rememberScrollState()),
