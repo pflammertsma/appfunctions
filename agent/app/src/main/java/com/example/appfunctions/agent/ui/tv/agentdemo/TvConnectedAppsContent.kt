@@ -84,7 +84,7 @@ fun TvConnectedAppsContent(
         modifier =
             modifier
                 .fillMaxSize()
-                .padding(start = 80.dp, top = 24.dp, end = 24.dp, bottom = 24.dp),
+                .padding(start = 80.dp, top = 16.dp, end = 24.dp, bottom = 24.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

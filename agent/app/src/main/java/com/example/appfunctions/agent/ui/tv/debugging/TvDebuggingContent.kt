@@ -367,7 +367,7 @@ private fun TvAppListScreen(
         modifier =
             modifier
                 .fillMaxSize()
-                .padding(start = 80.dp, top = 24.dp, end = 24.dp, bottom = 24.dp)
+                .padding(start = 80.dp, top = 16.dp, end = 24.dp, bottom = 24.dp)
                 .focusGroup()
                 .focusRestorer(),
     ) {
@@ -616,7 +616,7 @@ private fun TvFunctionListScreen(
         modifier =
             modifier
                 .fillMaxSize()
-                .padding(start = 80.dp, top = 24.dp, end = 24.dp, bottom = 24.dp),
+                .padding(start = 80.dp, top = 36.dp, end = 24.dp, bottom = 24.dp),
     ) {
         Row(
             modifier =
@@ -905,7 +905,7 @@ private fun TvFunctionExecutionScreen(
         modifier =
             modifier
                 .fillMaxSize()
-                .padding(start = 80.dp, top = 24.dp, end = 24.dp, bottom = 24.dp),
+                .padding(start = 80.dp, top = 36.dp, end = 24.dp, bottom = 24.dp),
     ) {
         // Header Row
         Row(
