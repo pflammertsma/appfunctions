@@ -27,6 +27,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -1584,6 +1585,12 @@ fun TvOverlayAppDialog(
     onAppSelected: (AppInfo) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val currentPackageName = context.packageName
+    val selectableApps =
+        remember(installedApps, currentPackageName) {
+            installedApps.filter { it.packageName != currentPackageName }
+        }
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(
             shape = MaterialTheme.shapes.large,
@@ -1599,11 +1606,11 @@ fun TvOverlayAppDialog(
                     .fillMaxWidth()
             ) {
                 Text(
-                    text = "Select App for Overlay Mode",
+                    text = "Select app to launch with overlay",
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(bottom = 16.dp),
                 )
-                if (installedApps.isEmpty()) {
+                if (selectableApps.isEmpty()) {
                     Text(
                         text = "No AppFunction-compatible apps found.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -1612,9 +1619,10 @@ fun TvOverlayAppDialog(
                 } else {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(vertical = 6.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        items(installedApps) { app ->
+                        items(selectableApps) { app ->
                             var isItemFocused by remember { mutableStateOf(false) }
                             val itemScale by animateFloatAsState(
                                 if (isItemFocused) 1.03f else 1.0f,
@@ -1645,6 +1653,20 @@ fun TvOverlayAppDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
+                                    if (app.icon != null) {
+                                        Image(
+                                            painter = coil.compose.rememberAsyncImagePainter(app.icon),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(40.dp),
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .size(40.dp)
+                                                    .background(Color.Gray)
+                                        )
+                                    }
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = app.label,
