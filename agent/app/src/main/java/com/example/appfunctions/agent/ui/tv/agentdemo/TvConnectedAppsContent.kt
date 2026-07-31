@@ -15,8 +15,6 @@
  */
 package com.example.appfunctions.agent.ui.tv.agentdemo
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -34,7 +32,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,7 +41,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -53,6 +49,7 @@ import androidx.tv.material3.IconButton
 import androidx.tv.material3.IconButtonDefaults
 import coil.compose.rememberAsyncImagePainter
 import com.example.appfunctions.agent.R
+import com.example.appfunctions.agent.ui.components.TvSurfaceCard
 import com.example.appfunctions.agent.ui.contracts.ConnectedAppsScreenLayout
 import com.example.appfunctions.agent.ui.screens.agentdemo.ConnectedAppsUiState
 
@@ -123,25 +120,13 @@ fun TvConnectedAppsContent(
                 items = uiState.connectedApps,
                 key = { app -> app.packageName },
             ) { app ->
-                var isRowFocused by remember { mutableStateOf(false) }
-                val rowScale by animateFloatAsState(if (isRowFocused) 1.02f else 1.0f, label = "rowScale")
-                Surface(
+                TvSurfaceCard(
                     onClick = { onToggleApp(app.packageName, !app.isConnected) },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .scale(rowScale)
-                            .onFocusChanged { isRowFocused = it.isFocused },
+                    modifier = Modifier.padding(vertical = 4.dp),
                     shape = MaterialTheme.shapes.medium,
-                    color = if (isRowFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-                    border =
-                        if (isRowFocused) {
-                            BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
-                        } else {
-                            null
-                        },
-                ) {
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    unfocusedBorder = null,
+                ) { isRowFocused ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier =
@@ -163,12 +148,23 @@ fun TvConnectedAppsContent(
                             Text(
                                 text = app.label,
                                 style = MaterialTheme.typography.bodyLarge,
+                                color =
+                                    if (isRowFocused) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
                             )
                             if (!app.description.isNullOrEmpty()) {
                                 Text(
                                     text = app.description,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color =
+                                        if (isRowFocused) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
                                 )
                             }
                         }

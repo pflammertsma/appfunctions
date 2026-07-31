@@ -75,7 +75,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.appfunctions.agent.R
-import com.example.appfunctions.agent.ui.layout.isTvFormFactor
 import com.example.appfunctions.agent.ui.theme.GoogleSansCodeFontFamily
 
 @Composable
@@ -100,9 +99,8 @@ fun AppFunctionItem(
                 },
         )
 
-    val isTv = isTvFormFactor()
     var isCardFocused by remember { mutableStateOf(false) }
-    val cardScale by animateFloatAsState(if (isTv && isCardFocused) 1.02f else 1.0f, label = "cardScale")
+    val cardScale by animateFloatAsState(if (isCardFocused) 1.02f else 1.0f, label = "cardScale")
 
     Surface(
         modifier =
@@ -110,13 +108,13 @@ fun AppFunctionItem(
                 .fillMaxWidth()
                 .scale(cardScale)
                 .onFocusChanged { isCardFocused = it.isFocused },
-        tonalElevation = if (isTv && isCardFocused) 8.dp else tonalElevation,
+        tonalElevation = if (isCardFocused) 8.dp else tonalElevation,
         shadowElevation = shadowElevation,
         shape = MaterialTheme.shapes.large,
-        color = if (isTv && isCardFocused) MaterialTheme.colorScheme.surfaceBright else surfaceColor,
+        color = if (isCardFocused) MaterialTheme.colorScheme.surfaceBright else surfaceColor,
         border =
-            if (isTv && isCardFocused) {
-                BorderStroke(3.dp, MaterialTheme.colorScheme.primary)
+            if (isCardFocused) {
+                BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
             } else {
                 BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             },
@@ -275,37 +273,20 @@ fun AppFunctionItem(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (isTv) {
-                        androidx.tv.material3.Button(
-                            onClick = { onInvoke(inputValues) },
-                            modifier = Modifier.height(48.dp).fillMaxWidth(),
-                            enabled = function.isEnabled,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 4.dp),
-                            )
-                            Text(
-                                text = stringResource(R.string.debugging_invoke),
-                            )
-                        }
-                    } else {
-                        Button(
-                            onClick = { onInvoke(inputValues) },
-                            modifier = Modifier.height(48.dp).fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(),
-                            enabled = function.isEnabled,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                modifier = Modifier.padding(end = 4.dp),
-                            )
-                            Text(
-                                text = stringResource(R.string.debugging_invoke),
-                            )
-                        }
+                    Button(
+                        onClick = { onInvoke(inputValues) },
+                        modifier = Modifier.height(48.dp).fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(),
+                        enabled = function.isEnabled,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 4.dp),
+                        )
+                        Text(
+                            text = stringResource(R.string.debugging_invoke),
+                        )
                     }
                 }
             }

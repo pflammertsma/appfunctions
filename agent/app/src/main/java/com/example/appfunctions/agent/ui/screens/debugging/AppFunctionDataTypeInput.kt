@@ -86,9 +86,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.ui.layout.AdaptiveInputContainer
-import com.example.appfunctions.agent.ui.layout.isTvFormFactor
-import androidx.tv.material3.Button as TvButton
-import androidx.tv.material3.ButtonDefaults as TvButtonDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("UNCHECKED_CAST")
@@ -475,58 +472,47 @@ fun ArrayTypeInput(
                         .focusGroup()
                         .focusProperties { onEnter = { addItemFocusRequester.requestFocus() } },
             ) {
-                if (isTvFormFactor()) {
-                    var isAddFocused by remember { mutableStateOf(false) }
-                    val addScale by animateFloatAsState(if (isAddFocused) 1.05f else 1.0f, label = "addScale")
+                var isAddFocused by remember { mutableStateOf(false) }
+                val addScale by animateFloatAsState(if (isAddFocused) 1.05f else 1.0f, label = "addScale")
 
-                    Surface(
-                        onClick = { onValueChange(value + createDefaultValue(dataType.itemType)) },
-                        modifier =
-                            Modifier
-                                .focusRequester(addItemFocusRequester)
-                                .scale(addScale)
-                                .onFocusChanged { isAddFocused = it.isFocused },
-                        shape = MaterialTheme.shapes.medium,
-                        color = if (isAddFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        border = if (isAddFocused) BorderStroke(2.dp, MaterialTheme.colorScheme.onPrimaryContainer) else null,
+                Surface(
+                    onClick = { onValueChange(value + createDefaultValue(dataType.itemType)) },
+                    modifier =
+                        Modifier
+                            .focusRequester(addItemFocusRequester)
+                            .scale(addScale)
+                            .onFocusChanged { isAddFocused = it.isFocused },
+                    shape = MaterialTheme.shapes.medium,
+                    color = if (isAddFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    border = if (isAddFocused) BorderStroke(2.dp, MaterialTheme.colorScheme.onPrimaryContainer) else null,
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null,
-                                tint =
-                                    if (isAddFocused) {
-                                        MaterialTheme.colorScheme.onPrimary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = stringResource(R.string.debugging_add_item),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color =
-                                    if (isAddFocused) {
-                                        MaterialTheme.colorScheme.onPrimary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                            )
-                        }
-                    }
-                } else {
-                    TextButton(
-                        onClick = { onValueChange(value + createDefaultValue(dataType.itemType)) },
-                        modifier = Modifier.focusRequester(addItemFocusRequester),
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null)
-                        Spacer(Modifier.width(4.dp))
-                        Text(stringResource(R.string.debugging_add_item))
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = null,
+                            tint =
+                                if (isAddFocused) {
+                                    MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = stringResource(R.string.debugging_add_item),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color =
+                                if (isAddFocused) {
+                                    MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                        )
                     }
                 }
 
@@ -590,10 +576,9 @@ fun ComplexTypeInput(
     isRequired: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val isTv = isTvFormFactor()
     var isFocused by remember { mutableStateOf(false) }
     val cardScale by animateFloatAsState(
-        if (isTv && isFocused) 1.02f else 1.0f,
+        if (isFocused) 1.02f else 1.0f,
         label = "complexInputScale",
     )
 
@@ -605,9 +590,9 @@ fun ComplexTypeInput(
                 .scale(cardScale)
                 .onFocusChanged { isFocused = it.isFocused },
         shape = MaterialTheme.shapes.medium,
-        color = if (isTv && isFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+        color = if (isFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
         border =
-            if (isTv && isFocused) {
+            if (isFocused) {
                 BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
             } else {
                 BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
@@ -619,7 +604,7 @@ fun ComplexTypeInput(
                     Text(
                         label,
                         color =
-                            if (isTv && isFocused) {
+                            if (isFocused) {
                                 MaterialTheme.colorScheme.onPrimaryContainer
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -642,7 +627,7 @@ fun ComplexTypeInput(
                     overflow = TextOverflow.Ellipsis,
                     color =
                         when {
-                            isTv && isFocused -> MaterialTheme.colorScheme.onPrimaryContainer
+                            isFocused -> MaterialTheme.colorScheme.onPrimaryContainer
                             selected -> MaterialTheme.colorScheme.onSurface
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
                         },
@@ -653,7 +638,7 @@ fun ComplexTypeInput(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
                     tint =
-                        if (isTv && isFocused) {
+                        if (isFocused) {
                             MaterialTheme.colorScheme.onPrimaryContainer
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
@@ -700,68 +685,21 @@ private fun AppFunctionObjectTypeSheetContent(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            if (isTvFormFactor()) {
-                TvButton(
-                    onClick = onReset,
-                    modifier = Modifier.height(56.dp).weight(1f),
-                    colors =
-                        TvButtonDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            focusedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                    border =
-                        TvButtonDefaults.border(
-                            focusedBorder =
-                                androidx.tv.material3.Border(
-                                    border = BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary),
-                                ),
-                        ),
-                ) {
-                    Text(text = stringResource(R.string.debugging_reset))
-                }
-                TvButton(
-                    onClick = onConfirm,
-                    modifier =
-                        Modifier
-                            .height(56.dp)
-                            .weight(1f)
-                            .focusRequester(confirmFocusRequester),
-                    colors =
-                        TvButtonDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            focusedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        ),
-                    border =
-                        TvButtonDefaults.border(
-                            focusedBorder =
-                                androidx.tv.material3.Border(
-                                    border = BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary),
-                                ),
-                        ),
-                ) {
-                    Text(text = stringResource(R.string.debugging_confirm))
-                }
-            } else {
-                TextButton(
-                    onClick = onReset,
-                    modifier = Modifier.height(56.dp).weight(1f),
-                ) {
-                    Text(text = stringResource(R.string.debugging_reset))
-                }
-                Button(
-                    onClick = onConfirm,
-                    modifier =
-                        Modifier
-                            .height(56.dp)
-                            .weight(1f)
-                            .focusRequester(confirmFocusRequester),
-                ) {
-                    Text(text = stringResource(R.string.debugging_confirm))
-                }
+            TextButton(
+                onClick = onReset,
+                modifier = Modifier.height(56.dp).weight(1f),
+            ) {
+                Text(text = stringResource(R.string.debugging_reset))
+            }
+            Button(
+                onClick = onConfirm,
+                modifier =
+                    Modifier
+                        .height(56.dp)
+                        .weight(1f)
+                        .focusRequester(confirmFocusRequester),
+            ) {
+                Text(text = stringResource(R.string.debugging_confirm))
             }
         }
     }

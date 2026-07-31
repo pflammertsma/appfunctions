@@ -16,118 +16,59 @@
 package com.example.appfunctions.agent.ui.screens.agentdemo
 
 import android.content.pm.PackageManager
-import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.SmartToy
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.HourglassEmpty
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupPositionProvider
-import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.data.LlmModel
 import com.example.appfunctions.agent.data.db.entities.MessageEntity
@@ -140,14 +81,7 @@ import com.example.appfunctions.agent.ui.contracts.AgentDemoScreenLayout
 import com.example.appfunctions.agent.ui.layout.FormFactor
 import com.example.appfunctions.agent.ui.layout.rememberFormFactor
 import com.example.appfunctions.agent.ui.mobile.agentdemo.MobileAgentDemoLayout
-import com.example.appfunctions.agent.ui.screens.debugging.LazyExposedDropdownMenu
 import com.example.appfunctions.agent.ui.tv.agentdemo.TvAgentDemoLayout
-import com.mikepenz.markdown.m3.Markdown
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.json.JSONObject
-import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun AgentDemoScreen(viewModel: AgentDemoViewModel = hiltViewModel()) {
@@ -184,722 +118,6 @@ fun AgentDemoLoadingScreen() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AgentDemoLoadedScreen(
-    uiState: AgentUiState.Loaded,
-    onEvent: (AgentUiEvent) -> Unit,
-    isWideScreen: Boolean,
-    drawerState: DrawerState,
-    scope: CoroutineScope,
-    packageManager: PackageManager,
-    modifier: Modifier = Modifier,
-    initialSidePanelVisible: Boolean = false,
-) {
-    val focusManager = LocalFocusManager.current
-    var messageText by remember { mutableStateOf(TextFieldValue("")) }
-    var isSidePanelVisible by remember { mutableStateOf(initialSidePanelVisible) }
-    var selectedAppPackageName by remember { mutableStateOf<String?>(null) }
-    val isTv = rememberFormFactor() == FormFactor.TV
-    var showHistoryDialog by remember { mutableStateOf(false) }
-
-    val inputFocusRequester = remember { FocusRequester() }
-    val listState = rememberLazyListState()
-    val currentThreadId = uiState.currentThread.threadId
-    var hasInitiallyScrolled by remember(currentThreadId) { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
-
-    LaunchedEffect(uiState.messages, currentThreadId) {
-        if (uiState.messages.isNotEmpty() && !hasInitiallyScrolled) {
-            hasInitiallyScrolled = true
-            listState.scrollToItem(0)
-        }
-    }
-
-    LaunchedEffect(uiState.messages.size) {
-        if (uiState.messages.isNotEmpty()) {
-            listState.animateScrollToItem(0)
-        }
-    }
-
-    if (isTv) {
-        LaunchedEffect(Unit) {
-            delay(100.milliseconds)
-            inputFocusRequester.requestFocus()
-        }
-    }
-
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = Color.Unspecified,
-        topBar = {
-            Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (isTv) {
-                    Text(
-                        text = stringResource(R.string.nav_agent_demo),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .padding(horizontal = 8.dp)
-                                .semantics { heading() },
-                    )
-                } else {
-                    ModelDropdown(
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .padding(horizontal = 8.dp),
-                        currentThread = uiState.currentThread,
-                        onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
-                        isAppFunctionDebuggingEnabled = uiState.isAppFunctionDebuggingEnabled,
-                        onToggleAppFunctionDebugging = {
-                            onEvent(
-                                AgentUiEvent.OnToggleAppFunctionDebugging(
-                                    it,
-                                ),
-                            )
-                        },
-                        onMenuClick = {
-                            if (isWideScreen) {
-                                isSidePanelVisible = !isSidePanelVisible
-                            } else {
-                                scope.launch { drawerState.open() }
-                            }
-                        },
-                    )
-                    IconButton(
-                        onClick = {
-                            onEvent(AgentUiEvent.OnCreateThread(uiState.currentThread.llmModel))
-                        },
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                    ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Create Thread")
-                    }
-                }
-            }
-        },
-    ) { paddingValues ->
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .imePadding()
-                    .padding(
-                        top = paddingValues.calculateTopPadding(),
-                    ),
-        ) {
-            // Side Panel (only for wide screens)
-            if (isWideScreen && !isTv) {
-                AnimatedVisibility(
-                    visible = isSidePanelVisible,
-                    enter = slideInHorizontally() + expandHorizontally(),
-                    exit = slideOutHorizontally() + shrinkHorizontally(),
-                ) {
-                    ChatHistorySidePanel(
-                        threads = uiState.threads,
-                        currentThread = uiState.currentThread,
-                        onEvent = onEvent,
-                    )
-                }
-            }
-
-            // Main Chat Area
-            Column(
-                modifier =
-                    Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(start = 16.dp, end = 16.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
-            ) {
-                // Messages List
-                LazyColumn(
-                    state = listState,
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp)),
-                    reverseLayout = true,
-                ) {
-                    // Status item at the bottom (above input) if not
-                    // idle
-                    if (uiState.status != AgentStatus.Idle) {
-                        item {
-                            StatusIndicator(
-                                status = uiState.status,
-                                packageManager = packageManager,
-                            )
-                        }
-                    }
-
-                    items(
-                        items = uiState.messages.reversed(),
-                        key = { message -> message.messageId },
-                    ) { message ->
-                        MessageBubble(
-                            message = message,
-                            isValidAction =
-                                message.pendingIntentId in uiState.activePendingActionIds,
-                            installedApps = uiState.installedApps,
-                            showAppFunctionDebugDetails = uiState.isAppFunctionDebuggingEnabled,
-                            onConfirmAction = { onEvent(AgentUiEvent.OnConfirmAction(it)) },
-                        )
-                    }
-                }
-
-                val sendMessage = {
-                    val textStr = messageText.text
-                    if (textStr.isNotBlank()) {
-                        onEvent(AgentUiEvent.OnSendMessage(textStr, selectedAppPackageName))
-                        messageText = TextFieldValue("")
-                        selectedAppPackageName = null
-                        inputFocusRequester.requestFocus()
-                        scope.launch {
-                            listState.animateScrollToItem(0)
-                        }
-                    }
-                }
-
-                val textStr = messageText.text
-                val lastAtIndex = textStr.lastIndexOf('@')
-                val showAutocomplete =
-                    lastAtIndex >= 0 &&
-                        (lastAtIndex == 0 || textStr[lastAtIndex - 1].isWhitespace()) &&
-                        selectedAppPackageName == null
-                val autocompleteQuery =
-                    if (showAutocomplete) {
-                        textStr.substring(lastAtIndex + 1)
-                    } else {
-                        ""
-                    }
-                val filteredApps =
-                    remember(autocompleteQuery, uiState.installedApps) {
-                        if (autocompleteQuery.isEmpty()) {
-                            uiState.installedApps
-                        } else {
-                            uiState.installedApps.filter {
-                                it.label.contains(autocompleteQuery, ignoreCase = true)
-                            }
-                        }
-                    }
-
-                val density = LocalDensity.current
-                val popupPositionProvider =
-                    remember(density) {
-                        object : PopupPositionProvider {
-                            override fun calculatePosition(
-                                anchorBounds: IntRect,
-                                windowSize: IntSize,
-                                layoutDirection: LayoutDirection,
-                                popupContentSize: IntSize,
-                            ): IntOffset {
-                                val gap = with(density) { 2.dp.roundToPx() }
-                                return IntOffset(
-                                    x = anchorBounds.left,
-                                    y = anchorBounds.top - popupContentSize.height - gap,
-                                )
-                            }
-                        }
-                    }
-
-                val appMentionRegex =
-                    remember(uiState.installedApps) {
-                        if (uiState.installedApps.isNotEmpty()) {
-                            val appLabelsPattern =
-                                uiState.installedApps.joinToString("|") { Regex.escape(it.label) }
-                            Regex("@($appLabelsPattern)\\b", RegexOption.IGNORE_CASE)
-                        } else {
-                            null
-                        }
-                    }
-
-                val isTv = rememberFormFactor() == FormFactor.TV
-
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 2.dp, vertical = 16.dp)
-                            .onPreviewKeyEvent { keyEvent ->
-                                if (isTv && keyEvent.type == KeyEventType.KeyDown) {
-                                    when (keyEvent.key) {
-                                        Key.DirectionUp -> {
-                                            val moved = focusManager.moveFocus(FocusDirection.Up)
-                                            if (!moved) {
-                                                coroutineScope.launch { listState.animateScrollBy(150f) }
-                                                true
-                                            } else {
-                                                false
-                                            }
-                                        }
-
-                                        Key.DirectionDown -> {
-                                            val moved = focusManager.moveFocus(FocusDirection.Down)
-                                            if (!moved) {
-                                                coroutineScope.launch { listState.animateScrollBy(-150f) }
-                                                true
-                                            } else {
-                                                false
-                                            }
-                                        }
-
-                                        Key.PageUp -> {
-                                            coroutineScope.launch { listState.animateScrollBy(450f) }
-                                            true
-                                        }
-
-                                        Key.PageDown -> {
-                                            coroutineScope.launch { listState.animateScrollBy(-450f) }
-                                            true
-                                        }
-
-                                        else -> false
-                                    }
-                                } else {
-                                    false
-                                }
-                            },
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        com.example.appfunctions.agent.ui.components.TvSurfaceTextField(
-                            value = messageText.text,
-                            placeholder = stringResource(R.string.agent_demo_ask_agent),
-                            modifier =
-                                Modifier
-                                    .focusRequester(inputFocusRequester)
-                                    .fillMaxWidth(),
-                            onValueChange = { newString ->
-                                messageText = TextFieldValue(newString)
-                                if (selectedAppPackageName != null && appMentionRegex != null) {
-                                    if (!appMentionRegex.containsMatchIn(newString)) {
-                                        selectedAppPackageName = null
-                                    }
-                                }
-                            },
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                            keyboardActions = KeyboardActions(onSend = { sendMessage() }),
-                            trailingIcon =
-                                if (isTv) {
-                                    null
-                                } else {
-                                    {
-                                        IconButton(
-                                            onClick = sendMessage,
-                                            enabled = messageText.text.isNotBlank(),
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                                contentDescription =
-                                                    stringResource(R.string.agent_demo_send),
-                                            )
-                                        }
-                                    }
-                                },
-                        )
-
-                        if (showAutocomplete && filteredApps.isNotEmpty()) {
-                            Popup(
-                                popupPositionProvider = popupPositionProvider,
-                                onDismissRequest = {},
-                                properties = PopupProperties(focusable = false),
-                            ) {
-                                Card(
-                                    modifier = Modifier.fillMaxWidth(0.9f),
-                                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                                    colors =
-                                        CardDefaults.cardColors(
-                                            containerColor = MaterialTheme.colorScheme.surfaceBright,
-                                        ),
-                                    shape = MaterialTheme.shapes.medium,
-                                ) {
-                                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                                        filteredApps.take(5).forEach { app ->
-                                            DropdownMenuItem(
-                                                text = { Text(app.label) },
-                                                onClick = {
-                                                    val currentText = messageText.text
-                                                    val selectionStart = messageText.selection.start
-                                                    val textBeforeCursor =
-                                                        currentText.take(
-                                                            selectionStart,
-                                                        )
-                                                    val textAfterCursor =
-                                                        currentText.drop(
-                                                            selectionStart,
-                                                        )
-                                                    val mentionIndex =
-                                                        textBeforeCursor.lastIndexOf('@')
-                                                    if (mentionIndex >= 0) {
-                                                        val textBeforeMention =
-                                                            textBeforeCursor.substring(
-                                                                0,
-                                                                mentionIndex,
-                                                            )
-                                                        val newText =
-                                                            "$textBeforeMention@${app.label} $textAfterCursor"
-                                                        val newCursorPosition =
-                                                            mentionIndex + app.label.length + 2
-                                                        messageText =
-                                                            TextFieldValue(
-                                                                text = newText,
-                                                                selection =
-                                                                    TextRange(
-                                                                        newCursorPosition,
-                                                                    ),
-                                                            )
-                                                        selectedAppPackageName = app.packageName
-                                                    }
-                                                },
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (isTv) {
-                        val isSendEnabled = messageText.text.isNotBlank()
-                        var isSendFocused by remember { mutableStateOf(false) }
-                        val sendScale by animateFloatAsState(
-                            if (isSendFocused) 1.1f else 1.0f,
-                            label = "sendScale",
-                        )
-                        Surface(
-                            onClick = sendMessage,
-                            enabled = isSendEnabled,
-                            modifier =
-                                Modifier
-                                    .size(52.dp)
-                                    .scale(sendScale)
-                                    .onFocusChanged { isSendFocused = it.isFocused },
-                            shape = CircleShape,
-                            color =
-                                when {
-                                    !isSendEnabled -> MaterialTheme.colorScheme.surfaceBright
-                                    isSendFocused -> MaterialTheme.colorScheme.primary
-                                    else -> MaterialTheme.colorScheme.primaryContainer
-                                },
-                            border =
-                                if (isSendFocused) {
-                                    BorderStroke(
-                                        2.5.dp,
-                                        MaterialTheme.colorScheme.onPrimaryContainer,
-                                    )
-                                } else {
-                                    BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                                },
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.fillMaxSize(),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Send,
-                                    contentDescription = stringResource(R.string.agent_demo_send),
-                                    tint =
-                                        when {
-                                            !isSendEnabled ->
-                                                MaterialTheme.colorScheme.onSurface.copy(
-                                                    alpha = 0.38f,
-                                                )
-
-                                            isSendFocused -> MaterialTheme.colorScheme.onPrimary
-                                            else -> MaterialTheme.colorScheme.onPrimaryContainer
-                                        },
-                                )
-                            }
-                        }
-
-                        // Model Dropdown
-                        ModelDropdown(
-                            currentThread = uiState.currentThread,
-                            onModelSelected = { onEvent(AgentUiEvent.OnModelSelected(it)) },
-                            isAppFunctionDebuggingEnabled = uiState.isAppFunctionDebuggingEnabled,
-                            onToggleAppFunctionDebugging = {
-                                onEvent(
-                                    AgentUiEvent.OnToggleAppFunctionDebugging(
-                                        it,
-                                    ),
-                                )
-                            },
-                        )
-
-                        // History Button
-                        var isHistoryFocused by remember { mutableStateOf(false) }
-                        val historyScale by animateFloatAsState(
-                            if (isHistoryFocused) 1.1f else 1.0f,
-                            label = "historyScale",
-                        )
-                        Surface(
-                            onClick = { showHistoryDialog = true },
-                            modifier =
-                                Modifier
-                                    .size(52.dp)
-                                    .scale(historyScale)
-                                    .onFocusChanged { isHistoryFocused = it.isFocused },
-                            shape = CircleShape,
-                            color =
-                                if (isHistoryFocused) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceBright
-                                },
-                            border =
-                                if (isHistoryFocused) {
-                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
-                                } else {
-                                    null
-                                },
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.fillMaxSize(),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.History,
-                                    contentDescription = "History",
-                                    tint =
-                                        if (isHistoryFocused) {
-                                            MaterialTheme.colorScheme.onPrimaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface
-                                        },
-                                )
-                            }
-                        }
-
-                        // Add Button
-                        var isAddFocused by remember { mutableStateOf(false) }
-                        val addScale by animateFloatAsState(
-                            if (isAddFocused) 1.1f else 1.0f,
-                            label = "addScale",
-                        )
-                        Surface(
-                            onClick = {
-                                onEvent(AgentUiEvent.OnCreateThread(uiState.currentThread.llmModel))
-                            },
-                            modifier =
-                                Modifier
-                                    .size(52.dp)
-                                    .scale(addScale)
-                                    .onFocusChanged { isAddFocused = it.isFocused },
-                            shape = CircleShape,
-                            color =
-                                if (isAddFocused) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceBright
-                                },
-                            border =
-                                if (isAddFocused) {
-                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
-                                } else {
-                                    null
-                                },
-                        ) {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.fillMaxSize(),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Create Thread",
-                                    tint =
-                                        if (isAddFocused) {
-                                            MaterialTheme.colorScheme.onPrimaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurface
-                                        },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if (showHistoryDialog) {
-        TvHistoryDialog(
-            threads = uiState.threads,
-            currentThread = uiState.currentThread,
-            onThreadSelected = { onEvent(AgentUiEvent.OnThreadSelected(it)) },
-            onDismissRequest = { showHistoryDialog = false },
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ModelDropdown(
-    modifier: Modifier = Modifier,
-    currentThread: ThreadEntity?,
-    onModelSelected: (LlmModel) -> Unit,
-    isAppFunctionDebuggingEnabled: Boolean = true,
-    onToggleAppFunctionDebugging: (Boolean) -> Unit = {},
-    onMenuClick: (() -> Unit)? = null,
-) {
-    val isTv = rememberFormFactor() == FormFactor.TV
-    var showModelDialog by remember { mutableStateOf(false) }
-
-    val models =
-        listOf(
-            LlmModel.GEMINI_3_1_PRO_PREVIEW,
-            LlmModel.GEMINI_3_FLASH_PREVIEW,
-            LlmModel.GEMINI_3_1_FLASH_LITE_PREVIEW,
-        )
-
-    if (isTv) {
-        var isFocused by remember { mutableStateOf(false) }
-        val scale by animateFloatAsState(
-            if (isFocused) 1.1f else 1.0f,
-            label = "modelDropdownScale",
-        )
-        Surface(
-            onClick = { showModelDialog = true },
-            modifier =
-                modifier
-                    .size(52.dp)
-                    .scale(scale)
-                    .onFocusChanged { isFocused = it.isFocused },
-            shape = CircleShape,
-            color =
-                if (isFocused) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceBright
-                },
-            border =
-                if (isFocused) BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary) else null,
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.SmartToy,
-                    contentDescription = "Select Model",
-                )
-            }
-        }
-
-        if (showModelDialog) {
-            TvModelDialog(
-                models = models,
-                selectedModel = currentThread?.llmModel,
-                onModelSelected = onModelSelected,
-                isAppFunctionDebuggingEnabled = isAppFunctionDebuggingEnabled,
-                onToggleAppFunctionDebugging = onToggleAppFunctionDebugging,
-                onDismissRequest = { showModelDialog = false },
-            )
-        }
-    } else {
-        var expanded by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(
-            modifier = modifier,
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-        ) {
-            Surface(
-                modifier = Modifier.padding(bottom = 8.dp),
-                shadowElevation = 2.dp,
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceBright,
-            ) {
-                val text =
-                    currentThread?.llmModel?.modelName
-                        ?: stringResource(R.string.agent_demo_select_model_to_create_thread)
-                val textColor =
-                    if (currentThread != null) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.error
-                    }
-
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                            .padding(start = 4.dp, end = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (onMenuClick != null) {
-                        IconButton(onClick = onMenuClick) {
-                            Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu")
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
-                    Row(
-                        modifier =
-                            Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .menuAnchor(
-                                    ExposedDropdownMenuAnchorType.PrimaryEditable,
-                                    enabled = true,
-                                ),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.agent_demo_title),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                text = text,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = textColor,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
-                    }
-                }
-            }
-
-            LazyExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.exposedDropdownSize(),
-                containerColor = MaterialTheme.colorScheme.surfaceBright,
-                shape = RoundedCornerShape(28.dp),
-            ) {
-                item {
-                    Text(
-                        "--- Gemini ---",
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-                items(models) { model ->
-                    DropdownMenuItem(
-                        text = { Text(model.modelName) },
-                        onClick = {
-                            onModelSelected(model)
-                            expanded = false
-                        },
-                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
-                    )
-                }
-            }
-        }
-    }
-}
-
 @Composable
 fun MessageBubble(
     message: MessageEntity,
@@ -908,7 +126,6 @@ fun MessageBubble(
     showAppFunctionDebugDetails: Boolean = true,
     onConfirmAction: (String) -> Unit,
 ) {
-    val isTv = rememberFormFactor() == FormFactor.TV
     val alignment = if (message.role == MessageRole.USER) Alignment.End else Alignment.Start
     val isError = message.processingStatus == MessageProcessingStatus.FAILED
     val backgroundColor =
@@ -924,6 +141,7 @@ fun MessageBubble(
             else -> MaterialTheme.colorScheme.onSurface
         }
 
+    val isTv = rememberFormFactor() == FormFactor.TV
     val parsedData =
         remember(message.textContent) {
             parseMessageContent(message.textContent)
@@ -935,187 +153,133 @@ fun MessageBubble(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp, horizontal = 2.dp),
+                .padding(vertical = 4.dp),
         horizontalAlignment = alignment,
     ) {
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = backgroundColor,
-            shadowElevation = if (message.role == MessageRole.ASSISTANT) 1.dp else 0.dp,
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                val bubbleContent = @Composable {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (isError) {
-                            Icon(
-                                imageVector = Icons.Filled.Warning,
-                                contentDescription = stringResource(R.string.debugging_error),
-                                tint = textColor,
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-                        val contentText =
-                            if (
-                                cleanContentText.isEmpty() &&
-                                message.pendingIntentId != null
-                            ) {
-                                stringResource(R.string.agent_demo_action_confirmation_needed)
-                            } else {
-                                cleanContentText
-                            }
-
-                        if (message.role != MessageRole.USER) {
-                            if (contentText.isNotEmpty()) {
-                                Markdown(content = contentText)
-                            }
-                        } else {
-                            val chipBgColor = MaterialTheme.colorScheme.primary
-                            val chipTextColor = MaterialTheme.colorScheme.onPrimary
-                            val formattedText =
-                                remember(contentText, installedApps) {
-                                    formatMessageText(contentText, installedApps)
-                                }
-                            val textMeasurer = rememberTextMeasurer()
-                            val typographyStyle = MaterialTheme.typography.bodyLarge
-                            val density = LocalDensity.current
-
-                            val inlineContentMap =
-                                remember(
-                                    contentText,
-                                    installedApps,
-                                    chipBgColor,
-                                    chipTextColor,
-                                    density,
+        if (cleanContentText.isNotEmpty() || message.attachments.isNotEmpty()) {
+            Surface(
+                color = backgroundColor,
+                shape =
+                    RoundedCornerShape(
+                        topStart = 20.dp,
+                        topEnd = 20.dp,
+                        bottomStart = if (message.role == MessageRole.USER) 20.dp else 4.dp,
+                        bottomEnd = if (message.role == MessageRole.USER) 4.dp else 20.dp,
+                    ),
+                shadowElevation = 1.dp,
+                modifier =
+                    Modifier.fillMaxWidth(
+                        if (message.role == MessageRole.USER) 0.85f else 0.95f,
+                    ),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    if (message.attachments.isNotEmpty()) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        ) {
+                            message.attachments.forEach { _ ->
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
                                 ) {
-                                    val map = mutableMapOf<String, InlineTextContent>()
-                                    if (installedApps.isNotEmpty() && contentText.contains("@")) {
-                                        val appLabelsPattern =
-                                            installedApps.joinToString(
-                                                "|",
-                                            ) { Regex.escape(it.label) }
-                                        val regex =
-                                            Regex(
-                                                "@($appLabelsPattern)\\b",
-                                                RegexOption.IGNORE_CASE,
-                                            )
-                                        regex.findAll(contentText).forEachIndexed { index, match ->
-                                            val id = "chip_$index"
-                                            val appName = match.value
-                                            val measured =
-                                                textMeasurer.measure(
-                                                    text = appName,
-                                                    style =
-                                                        typographyStyle.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                        ),
-                                                )
-                                            val widthSp =
-                                                with(
-                                                    density,
-                                                ) { (measured.size.width + 8.dp.roundToPx()).toSp() }
-                                            val heightSp =
-                                                with(
-                                                    density,
-                                                ) { (measured.size.height + 2.dp.roundToPx()).toSp() }
-
-                                            map[id] =
-                                                InlineTextContent(
-                                                    Placeholder(
-                                                        width = widthSp,
-                                                        height = heightSp,
-                                                        placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
-                                                    ),
-                                                ) {
-                                                    Surface(
-                                                        shape =
-                                                            androidx.compose.foundation.shape.RoundedCornerShape(
-                                                                6.dp,
-                                                            ),
-                                                        color = chipBgColor,
-                                                    ) {
-                                                        Box(contentAlignment = Alignment.Center) {
-                                                            Text(
-                                                                text = appName,
-                                                                color = chipTextColor,
-                                                                style =
-                                                                    typographyStyle.copy(
-                                                                        fontWeight = FontWeight.Bold,
-                                                                    ),
-                                                                modifier =
-                                                                    Modifier.padding(
-                                                                        horizontal = 4.dp,
-                                                                        vertical = 1.dp,
-                                                                    ),
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                        }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier =
+                                            Modifier.padding(
+                                                horizontal = 12.dp,
+                                                vertical = 8.dp,
+                                            ),
+                                    ) {
+                                        Text(
+                                            text = "Attachment",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
                                     }
-                                    map
                                 }
+                            }
+                        }
+                    }
 
+                    if (cleanContentText.isNotEmpty()) {
+                        val typographyStyle =
+                            if (message.role == MessageRole.USER) {
+                                MaterialTheme.typography.bodyLarge
+                            } else {
+                                MaterialTheme.typography.bodyMedium
+                            }
+
+                        if (isTv) {
                             Text(
-                                text = formattedText,
-                                inlineContent = inlineContentMap,
+                                text = cleanContentText,
                                 color = textColor,
                                 style = typographyStyle,
                             )
-                        }
-                    }
-                }
-                if (isTv) {
-                    bubbleContent()
-                } else {
-                    SelectionContainer {
-                        bubbleContent()
-                    }
-                }
-                if (showAppFunctionDebugDetails && parsedCalls.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    parsedCalls.forEach { call ->
-                        AppFunctionCallHintCard(call, installedApps)
-                    }
-                }
+                        } else {
+                            val annotatedText =
+                                remember(cleanContentText, installedApps) {
+                                    formatMessageText(cleanContentText, installedApps)
+                                }
 
-                if (message.pendingIntentId != null) {
-                    Spacer(modifier = Modifier.padding(vertical = 8.dp))
-                    androidx.compose.material3.Button(
-                        onClick = { onConfirmAction(message.pendingIntentId) },
-                        enabled = isValidAction,
-                        shape = CircleShape,
-                        colors =
-                            ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary,
-                            ),
-                    ) {
-                        Text(
-                            if (isValidAction) {
-                                stringResource(R.string.agent_demo_confirm_action)
-                            } else {
-                                stringResource(R.string.agent_demo_action_expired)
-                            },
-                        )
+                            SelectionContainer {
+                                Text(
+                                    text = annotatedText,
+                                    color = textColor,
+                                    style = typographyStyle,
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
 
-        if (message.role != MessageRole.USER) {
-            message.attachments.forEach { attachment ->
-                if (attachment.mimeType.startsWith("image/", ignoreCase = true)) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    AsyncImage(
-                        model = attachment.uri,
-                        contentDescription = "Generated Image",
-                        modifier =
-                            Modifier
-                                .fillMaxWidth(0.85f)
-                                .height(240.dp)
-                                .clip(RoundedCornerShape(16.dp)),
-                        contentScale = ContentScale.Crop,
+        if (showAppFunctionDebugDetails && parsedCalls.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            parsedCalls.forEach { call ->
+                AppFunctionCallHintCard(call, installedApps)
+            }
+        }
+
+        if (message.pendingIntentId != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(16.dp),
+                shadowElevation = 2.dp,
+                modifier = Modifier.fillMaxWidth(0.95f),
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(24.dp),
                     )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text =
+                            if (isValidAction) {
+                                stringResource(R.string.agent_demo_action_confirmation_needed)
+                            } else {
+                                stringResource(R.string.agent_demo_action_expired)
+                            },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (isValidAction) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Button(
+                            onClick = { onConfirmAction(message.pendingIntentId) },
+                        ) {
+                            Text(stringResource(R.string.agent_demo_confirm_action))
+                        }
+                    }
                 }
             }
         }
@@ -1212,59 +376,96 @@ fun ChatHistorySidePanel(
     Column(
         modifier =
             modifier
-                .width(280.dp)
                 .fillMaxHeight()
+                .width(280.dp)
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
                 .padding(16.dp),
     ) {
-        Text(
-            text = stringResource(R.string.agent_demo_chat_history),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(bottom = 16.dp),
-        )
-
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(
-                items = threads,
-                key = { thread -> thread.threadId },
-            ) { thread ->
-                val isSelected = thread.threadId == currentThread?.threadId
-                val backgroundColor =
-                    if (isSelected) {
-                        MaterialTheme.colorScheme.primaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    }
-                val textColor =
-                    if (isSelected) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-
-                Surface(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .clickable {
-                                onEvent(AgentUiEvent.OnThreadSelected(thread.threadId))
-                            },
-                    shape = MaterialTheme.shapes.medium,
-                    color = backgroundColor,
-                    contentColor = textColor,
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(R.string.agent_demo_chat_history),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Surface(
+                onClick = { onEvent(AgentUiEvent.OnCreateThread(LlmModel.GEMINI_3_1_PRO_PREVIEW)) },
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = thread.llmModel.modelName,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = textColor,
-                        )
-                        Text(
-                            text = "ID: ${thread.threadId.take(8)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = textColor.copy(alpha = 0.7f),
-                        )
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "New",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(top = 8.dp),
+        ) {
+            items(threads) { thread ->
+                val isSelected = thread.threadId == currentThread?.threadId
+                Surface(
+                    onClick = { onEvent(AgentUiEvent.OnThreadSelected(thread.threadId)) },
+                    shape = RoundedCornerShape(12.dp),
+                    color =
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.primaryContainer
+                        } else {
+                            Color.Transparent
+                        },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = thread.llmModel.modelName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color =
+                                    if (isSelected) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                            )
+                            Text(
+                                text = "ID: ${thread.threadId.take(8)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                        }
                     }
                 }
             }
@@ -1275,336 +476,55 @@ fun ChatHistorySidePanel(
 fun formatMessageText(
     text: String,
     installedApps: List<AppInfo>,
-): AnnotatedString {
-    if (installedApps.isEmpty() || !text.contains("@")) {
-        return AnnotatedString(text)
-    }
-    val appLabelsPattern = installedApps.joinToString("|") { Regex.escape(it.label) }
-    val regex = Regex("@($appLabelsPattern)\\b", RegexOption.IGNORE_CASE)
-    val matches = regex.findAll(text)
-
-    return buildAnnotatedString {
-        var lastIndex = 0
-        matches.forEachIndexed { index, match ->
-            val precedingText = text.substring(lastIndex, match.range.first)
-            if (precedingText.isNotEmpty()) {
-                append(precedingText)
-            }
-            appendInlineContent(id = "chip_$index", alternateText = match.value)
-            lastIndex = match.range.last + 1
+): AnnotatedString =
+    buildAnnotatedString {
+        if (installedApps.isEmpty()) {
+            append(text)
+            return@buildAnnotatedString
         }
+
+        val appLabelsPattern =
+            installedApps.joinToString("|") { Regex.escape(it.label) }
+        val regex = Regex("@($appLabelsPattern)\\b", RegexOption.IGNORE_CASE)
+
+        var lastIndex = 0
+        regex.findAll(text).forEach { matchResult ->
+            append(text.substring(lastIndex, matchResult.range.first))
+
+            val appName = matchResult.groupValues[1]
+            val matchedApp =
+                installedApps.find { it.label.equals(appName, ignoreCase = true) }
+
+            if (matchedApp != null) {
+                appendInlineContent(matchedApp.label, "@${matchedApp.label}")
+            } else {
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append(matchResult.value)
+                }
+            }
+
+            lastIndex = matchResult.range.last + 1
+        }
+
         if (lastIndex < text.length) {
             append(text.substring(lastIndex))
         }
     }
-}
-
-@Composable
-fun TvHistoryDialog(
-    threads: List<ThreadEntity>,
-    currentThread: ThreadEntity?,
-    onThreadSelected: (String) -> Unit,
-    onDismissRequest: () -> Unit,
-) {
-    Dialog(onDismissRequest = onDismissRequest) {
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            modifier =
-                Modifier
-                    .width(460.dp)
-                    .padding(16.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-        ) {
-            Column(
-                modifier =
-                    Modifier
-                        .padding(24.dp)
-                        .fillMaxWidth(),
-            ) {
-                Text(
-                    text = stringResource(R.string.agent_demo_chat_history),
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp),
-                )
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    items(threads) { thread ->
-                        val isSelected = thread.threadId == currentThread?.threadId
-                        var isItemFocused by remember { mutableStateOf(false) }
-                        val itemScale by animateFloatAsState(
-                            if (isItemFocused) 1.03f else 1.0f,
-                            label = "itemScale",
-                        )
-                        Surface(
-                            onClick = {
-                                onThreadSelected(thread.threadId)
-                                onDismissRequest()
-                            },
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .scale(itemScale)
-                                    .onFocusChanged { isItemFocused = it.isFocused },
-                            shape = MaterialTheme.shapes.medium,
-                            color =
-                                if (isSelected) {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceContainerHigh
-                                },
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                            border =
-                                if (isItemFocused) {
-                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
-                                } else {
-                                    null
-                                },
-                        ) {
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = thread.llmModel.modelName,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                    )
-                                    Text(
-                                        text = "ID: ${thread.threadId.take(8)}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                                if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "Active Chat",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier =
-                                            Modifier
-                                                .padding(start = 12.dp)
-                                                .size(20.dp),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun TvModelDialog(
-    models: List<LlmModel>,
-    selectedModel: LlmModel?,
-    onModelSelected: (LlmModel) -> Unit,
-    isAppFunctionDebuggingEnabled: Boolean,
-    onToggleAppFunctionDebugging: (Boolean) -> Unit,
-    onDismissRequest: () -> Unit,
-) {
-    Dialog(onDismissRequest = onDismissRequest) {
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            modifier =
-                Modifier
-                    .width(460.dp)
-                    .padding(16.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-        ) {
-            Column(
-                modifier =
-                    Modifier
-                        .padding(24.dp)
-                        .fillMaxWidth(),
-            ) {
-                Text(
-                    text = "AI Behavior",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp),
-                )
-
-                Text(
-                    text = "Select Model",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    models.forEach { model ->
-                        val isSelected = model == selectedModel
-                        var isItemFocused by remember { mutableStateOf(false) }
-                        val itemScale by animateFloatAsState(
-                            if (isItemFocused) 1.03f else 1.0f,
-                            label = "itemScale",
-                        )
-                        Surface(
-                            onClick = {
-                                onModelSelected(model)
-                            },
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .scale(itemScale)
-                                    .onFocusChanged { isItemFocused = it.isFocused },
-                            shape = MaterialTheme.shapes.medium,
-                            color =
-                                if (isSelected) {
-                                    MaterialTheme.colorScheme.surfaceVariant
-                                } else {
-                                    MaterialTheme.colorScheme.surfaceContainerHigh
-                                },
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                            border =
-                                if (isItemFocused) {
-                                    BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
-                                } else {
-                                    null
-                                },
-                        ) {
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text(
-                                    text = model.modelName,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                )
-                                if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "Selected",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "Debugging",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-
-                var isToggleFocused by remember { mutableStateOf(false) }
-                val toggleScale by animateFloatAsState(
-                    if (isToggleFocused) 1.03f else 1.0f,
-                    label = "toggleScale",
-                )
-                Surface(
-                    onClick = {
-                        onToggleAppFunctionDebugging(!isAppFunctionDebuggingEnabled)
-                    },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .scale(toggleScale)
-                            .onFocusChanged { isToggleFocused = it.isFocused },
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                    border =
-                        if (isToggleFocused) {
-                            BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
-                        } else {
-                            null
-                        },
-                ) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Column(
-                            modifier =
-                                Modifier
-                                    .weight(1f)
-                                    .padding(end = 12.dp),
-                        ) {
-                            Text(
-                                text = "AppFunction Debugging",
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                            Text(
-                                text = "Show parameters & results in chat",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(
-                            checked = isAppFunctionDebuggingEnabled,
-                            onCheckedChange = { onToggleAppFunctionDebugging(it) },
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
 data class ParsedAppFunctionCall(
     val packageName: String,
     val functionId: String,
     val arguments: Map<String, Any?>,
-    val response: String? = null,
+    val response: String?,
 )
 
-fun parseMessageContent(content: String): Pair<String, List<ParsedAppFunctionCall>> {
-    val regex = Regex("@@AppFunctionCall:(.*?)@@")
+fun parseMessageContent(text: String): Pair<String, List<ParsedAppFunctionCall>> {
+    val callRegex = Regex("@@AppFunctionCall:(.*?)@@")
+    val matches = callRegex.findAll(text)
     val calls = mutableListOf<ParsedAppFunctionCall>()
-    var cleanText = content
 
-    regex.findAll(content).forEach { match ->
-        try {
-            val jsonStr = match.groupValues[1]
-            val json = JSONObject(jsonStr)
-            val packageName = json.getString("package")
-            val functionId = json.getString("function")
-            val argsJson = json.optJSONObject("args")
-            val argsMap = mutableMapOf<String, Any?>()
-            if (argsJson != null) {
-                val keys = argsJson.keys()
-                while (keys.hasNext()) {
-                    val key = keys.next()
-                    argsMap[key] = argsJson.get(key)
-                }
-            }
-            val responseStr =
-                if (json.has("response")) {
-                    json.optString("response")
-                        .takeIf { it.isNotBlank() }
-                } else {
-                    null
-                }
-            calls.add(ParsedAppFunctionCall(packageName, functionId, argsMap, responseStr))
-        } catch (e: Exception) {
-            Log.e("AgentDemoScreen", "Error parsing AppFunctionCall tag", e)
-        }
+    var cleanText = text
+    matches.forEach { match ->
         cleanText = cleanText.replace(match.value, "")
     }
 
@@ -1626,61 +546,25 @@ fun AppFunctionCallHintCard(
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
+        modifier = modifier.fillMaxWidth(),
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // 1. FX Icon (ic_rounded_function, tinted blue)
-                Icon(
-                    painter = painterResource(R.drawable.ic_rounded_function),
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            appInfo?.icon?.let {
+                Image(
+                    bitmap = it.toBitmap().asImageBitmap(),
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp),
                 )
-                Spacer(modifier = Modifier.width(6.dp))
-
-                // 2. App Icon to its right
-                if (appInfo?.icon != null) {
-                    val bitmap =
-                        remember(appInfo.icon) {
-                            appInfo.icon.toBitmap(width = 48, height = 48).asImageBitmap()
-                        }
-                    Image(
-                        bitmap = bitmap,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                }
-
-                // 3. Function ID
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = call.functionId,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    text = "${appInfo?.label ?: call.packageName} → ${call.functionId}",
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                )
-            }
-            if (call.arguments.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                val argsStr = call.arguments.entries.joinToString(", ") { "${it.key}=${it.value}" }
-                Text(
-                    text = "Parameters: $argsStr",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (!call.response.isNullOrEmpty()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Result: ${call.response}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

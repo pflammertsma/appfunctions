@@ -391,6 +391,7 @@ class AgentOrchestratorTest {
         coEvery { settingsRepository.geminiApiKey } returns flowOf(apiKey)
         coEvery { settingsRepository.disconnectedApps } returns flowOf(disconnectedApps)
         coEvery { settingsRepository.serviceTier } returns flowOf(ServiceTier.STANDARD)
+        coEvery { settingsRepository.appFunctionDebuggingEnabled } returns flowOf(false)
         coEvery { llmProviderFactory.getProvider(LlmProviderName.GEMINI) } returns llmProvider
     }
 
@@ -430,7 +431,7 @@ class AgentOrchestratorTest {
                 sendMessageUseCase(
                     threadId = threadId,
                     role = MessageRole.ASSISTANT,
-                    textContent = "Here is your image!",
+                    textContent = match { it.startsWith("Here is your image!") },
                     processingStatus = MessageProcessingStatus.PROCESSED,
                     pendingIntentId = null,
                     targetPackageName = null,

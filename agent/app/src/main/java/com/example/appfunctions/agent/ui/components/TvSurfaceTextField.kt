@@ -54,6 +54,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 
 /**
@@ -118,7 +119,7 @@ fun TvSurfaceTextField(
     if (isEditing) {
         var tfValue by remember {
             mutableStateOf(
-                androidx.compose.ui.text.input.TextFieldValue(
+                TextFieldValue(
                     text = value,
                     selection = TextRange(0, value.length),
                 ),
@@ -141,7 +142,25 @@ fun TvSurfaceTextField(
             placeholder = { Text(placeholder) },
             trailingIcon = trailingIcon,
             keyboardOptions = keyboardOptions,
-            keyboardActions = keyboardActions,
+            keyboardActions =
+                KeyboardActions(
+                    onSend = {
+                        keyboardActions.onSend?.invoke(this)
+                        stopEditing()
+                    },
+                    onDone = {
+                        keyboardActions.onDone?.invoke(this)
+                        stopEditing()
+                    },
+                    onGo = {
+                        keyboardActions.onGo?.invoke(this)
+                        stopEditing()
+                    },
+                    onSearch = {
+                        keyboardActions.onSearch?.invoke(this)
+                        stopEditing()
+                    },
+                ),
             shape = shape,
             colors =
                 OutlinedTextFieldDefaults.colors(
@@ -161,13 +180,12 @@ fun TvSurfaceTextField(
                         tfFocused = focusState.isFocused
                     }
                     .onPreviewKeyEvent { keyEvent ->
-                        when (keyEvent.key) {
-                            Key.Back, Key.Escape -> {
-                                if (keyEvent.type == KeyEventType.KeyUp) {
-                                    stopEditing()
-                                }
-                                true
+                        if (keyEvent.key == Key.Back || keyEvent.key == Key.Escape) {
+                            if (keyEvent.type == KeyEventType.KeyUp) {
+                                stopEditing()
                             }
+                            true
+                        } else when (keyEvent.key) {
                             Key.Enter, Key.NumPadEnter -> {
                                 if (keyEvent.type == KeyEventType.KeyUp) {
                                     val actionScope =

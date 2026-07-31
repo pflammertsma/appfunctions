@@ -42,7 +42,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -178,8 +177,6 @@ fun AdaptiveMainNavigation(
                                         .focusRequester(focusRequesters[index])
                                         .focusProperties {
                                             canFocus = isDrawerFocused || drawerState.currentValue == DrawerValue.Open || isSelected
-                                            right = contentFocusRequester
-                                            end = contentFocusRequester
                                         }
                                         .padding(vertical = 4.dp),
                             ) {
@@ -194,9 +191,7 @@ fun AdaptiveMainNavigation(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .focusRequester(contentFocusRequester)
-                        .focusGroup()
-                        .focusRestorer(),
+                        .focusRequester(contentFocusRequester),
             ) {
                 content(Modifier.fillMaxSize())
             }

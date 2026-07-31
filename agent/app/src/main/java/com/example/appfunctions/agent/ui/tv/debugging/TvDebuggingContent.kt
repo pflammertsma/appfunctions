@@ -70,6 +70,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
@@ -368,6 +369,7 @@ private fun TvAppListScreen(
             modifier
                 .fillMaxSize()
                 .padding(start = 80.dp, top = 16.dp, end = 24.dp, bottom = 24.dp)
+                .focusProperties { canFocus = false }
                 .focusGroup()
                 .focusRestorer(),
     ) {

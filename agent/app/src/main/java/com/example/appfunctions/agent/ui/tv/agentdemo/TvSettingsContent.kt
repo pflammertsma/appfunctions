@@ -15,7 +15,6 @@
  */
 package com.example.appfunctions.agent.ui.tv.agentdemo
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,13 +28,10 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -61,6 +57,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.appfunctions.agent.BuildConfig
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.data.ServiceTier
+import com.example.appfunctions.agent.ui.components.TvSettingsRow
 import com.example.appfunctions.agent.ui.components.TvSurfaceTextField
 import com.example.appfunctions.agent.ui.contracts.SettingsScreenLayout
 import kotlinx.coroutines.delay
@@ -205,75 +202,6 @@ fun TvSettingsContent(
                 },
             )
         }
-    }
-}
-
-@Composable
-private fun TvSettingsRow(
-    title: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    applyDefaultPadding: Boolean = true,
-    leadingIcon: (@Composable () -> Unit)? = null,
-    trailingIcon: (@Composable () -> Unit)? = {
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-        )
-    },
-) {
-    var isFocused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (isFocused) 1.02f else 1.0f, label = "rowScale")
-
-    Surface(
-        onClick = onClick,
-        modifier =
-            (if (applyDefaultPadding) Modifier.padding(horizontal = 24.dp, vertical = 8.dp) else Modifier)
-                .then(modifier)
-                .scale(scale)
-                .fillMaxWidth()
-                .onFocusChanged { isFocused = it.isFocused },
-        shape = MaterialTheme.shapes.extraLarge,
-        color = if (isFocused) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceBright,
-        border =
-            if (isFocused) {
-                BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
-            } else {
-                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-            },
-    ) {
-        ListItem(
-            headlineContent = {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            },
-            leadingContent = leadingIcon,
-            trailingContent = trailingIcon,
-            colors =
-                ListItemDefaults.colors(
-                    containerColor = Color.Transparent,
-                    headlineColor =
-                        if (isFocused) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        },
-                    leadingIconColor =
-                        if (isFocused) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    trailingIconColor =
-                        if (isFocused) {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                ),
-        )
     }
 }
 
