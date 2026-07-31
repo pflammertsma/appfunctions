@@ -17,7 +17,6 @@ package com.example.appfunctions.agent.ui.mobile.agentdemo
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -41,14 +40,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.appfunctions.agent.BuildConfig
@@ -91,17 +92,16 @@ fun MobileSettingsContent(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Unspecified,
         topBar = {
-            Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(id = R.string.nav_settings),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.semantics { heading() },
-                )
-            }
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(id = R.string.nav_settings),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+            )
         },
     ) { paddingValues ->
         Column(

@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
@@ -41,22 +42,30 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.example.appfunctions.agent.R
@@ -147,6 +156,7 @@ fun MobileDebuggingContent(
 }
 
 /** Step 1: Full-Screen Installed Apps List on Mobile */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MobileAppListScreen(
     appGroups: AppsGroupState,
@@ -157,6 +167,7 @@ private fun MobileAppListScreen(
     onTogglePin: (AppInfo) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var isSearchExpanded by remember { mutableStateOf(searchQuery.isNotEmpty()) }
     val sections = appGroups.sections
     val pinnedPackageNames =
         remember(sections) {
@@ -171,34 +182,58 @@ private fun MobileAppListScreen(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Unspecified,
         topBar = {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                Text(
-                    text = stringResource(id = R.string.debugging_installed_apps_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 12.dp),
-                )
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = onSearchQueryChanged,
-                    placeholder = { Text(stringResource(R.string.debugging_search_app)) },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = null)
-                    },
-                    trailingIcon =
-                        if (searchQuery.isNotEmpty()) {
-                            {
-                                IconButton(onClick = { onSearchQueryChanged("") }) {
-                                    Icon(Icons.Filled.Clear, contentDescription = "Clear search")
+            TopAppBar(
+                title = {
+                    if (isSearchExpanded) {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = onSearchQueryChanged,
+                            placeholder = { Text(stringResource(R.string.debugging_search_app)) },
+                            singleLine = true,
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = {
+                                        if (searchQuery.isNotEmpty()) {
+                                            onSearchQueryChanged("")
+                                        } else {
+                                            isSearchExpanded = false
+                                        }
+                                    },
+                                ) {
+                                    Icon(Icons.Filled.Clear, contentDescription = "Close search")
                                 }
-                            }
-                        } else {
-                            null
-                        },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+                            },
+                            colors =
+                                OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceBright,
+                                ),
+                            shape = CircleShape,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(end = 8.dp),
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(id = R.string.debugging_installed_apps_title),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                },
+                actions = {
+                    if (!isSearchExpanded) {
+                        IconButton(onClick = { isSearchExpanded = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = stringResource(R.string.debugging_search_app),
+                            )
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+            )
         },
     ) { paddingValues ->
         Box(
@@ -327,6 +362,7 @@ private fun MobileAppListScreen(
 }
 
 /** Step 2: Functions Detail Screen for Selected App on Mobile */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MobileFunctionsDetailScreen(
     selectedApp: AppInfo,
@@ -353,50 +389,59 @@ private fun MobileFunctionsDetailScreen(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Unspecified,
         topBar = {
-            Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back to installed apps",
-                    )
-                }
-                Spacer(modifier = Modifier.width(4.dp))
-                if (selectedApp.icon != null) {
-                    Image(
-                        bitmap = selectedApp.icon.toBitmap().asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = selectedApp.label,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = selectedApp.packageName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                IconButton(onClick = { onTogglePin(selectedApp) }) {
-                    Icon(
-                        imageVector = if (isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
-                        contentDescription = if (isPinned) "Unpin App" else "Pin App",
-                        tint =
-                            if (isPinned) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                    )
-                }
-            }
+            TopAppBar(
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back to installed apps",
+                        )
+                    }
+                },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (selectedApp.icon != null) {
+                            Image(
+                                bitmap = selectedApp.icon.toBitmap().asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                        }
+                        Column {
+                            Text(
+                                text = selectedApp.label,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = selectedApp.packageName,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { onTogglePin(selectedApp) }) {
+                        Icon(
+                            imageVector = if (isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                            contentDescription = if (isPinned) "Unpin App" else "Pin App",
+                            tint =
+                                if (isPinned) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+            )
         },
     ) { paddingValues ->
         Box(
