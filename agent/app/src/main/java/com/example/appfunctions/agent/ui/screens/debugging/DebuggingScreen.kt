@@ -49,11 +49,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
 import com.example.appfunctions.agent.ui.contracts.DebuggingScreenLayout
-import com.example.appfunctions.agent.ui.layout.FormFactor
 import com.example.appfunctions.agent.ui.layout.rememberFormFactor
-import com.example.appfunctions.agent.ui.mobile.debugging.MobileDebuggingLayout
+import com.example.appfunctions.agent.ui.layout.resolveDebuggingLayout
 import com.example.appfunctions.agent.ui.theme.AppFunctionsAgentTheme
-import com.example.appfunctions.agent.ui.tv.debugging.TvDebuggingLayout
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,19 +68,15 @@ fun DebuggingScreen(viewModel: DebuggingViewModel = hiltViewModel()) {
 
     DebuggingScreenContent(
         uiState = uiState,
-        onSearchQueryChanged = { viewModel.onSearchQueryChanged(it) },
-        onAppSelected = { viewModel.onAppSelected(it) },
-        onClearSelectedApp = { viewModel.onClearSelectedApp() },
-        onFunctionInputsChange = { functionId, inputs ->
-            viewModel.onFunctionInputsChange(functionId, inputs)
-        },
-        onInvoke = { viewModel.invokeFunction(it) },
-        onClearResult = { viewModel.clearResult() },
-        onFunctionExpandedChange = { functionId, expanded ->
-            viewModel.onFunctionExpandedChange(functionId, expanded)
-        },
-        onLaunchPendingIntent = { viewModel.launchPendingIntent(it) },
-        onTogglePin = { viewModel.onTogglePin(it) },
+        onSearchQueryChanged = viewModel::onSearchQueryChanged,
+        onAppSelected = viewModel::onAppSelected,
+        onClearSelectedApp = viewModel::onClearSelectedApp,
+        onFunctionInputsChange = viewModel::onFunctionInputsChange,
+        onInvoke = viewModel::invokeFunction,
+        onClearResult = viewModel::clearResult,
+        onFunctionExpandedChange = viewModel::onFunctionExpandedChange,
+        onLaunchPendingIntent = viewModel::launchPendingIntent,
+        onTogglePin = viewModel::onTogglePin,
     )
 }
 
@@ -100,12 +94,7 @@ fun DebuggingScreenContent(
     onLaunchPendingIntent: (PendingIntent) -> Unit,
     onTogglePin: (AppInfo) -> Unit,
 ) {
-    val formFactor = rememberFormFactor()
-    val layout: DebuggingScreenLayout =
-        when (formFactor) {
-            FormFactor.TV -> TvDebuggingLayout
-            FormFactor.WEAR, FormFactor.AUTO, FormFactor.XR, FormFactor.MOBILE -> MobileDebuggingLayout
-        }
+    val layout: DebuggingScreenLayout = rememberFormFactor().resolveDebuggingLayout()
 
     layout.Content(
         uiState = uiState,

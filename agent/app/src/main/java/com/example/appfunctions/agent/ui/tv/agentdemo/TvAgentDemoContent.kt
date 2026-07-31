@@ -294,6 +294,7 @@ fun TvAgentDemoLoadedScreen(
                                 isValidAction = uiState.activePendingActionIds.contains(message.messageId),
                                 installedApps = uiState.installedApps,
                                 showAppFunctionDebugDetails = uiState.isAppFunctionDebuggingEnabled,
+                                enableTextSelection = false,
                                 onConfirmAction = { pendingIntentId ->
                                     onEvent(AgentUiEvent.OnConfirmAction(pendingIntentId))
                                 },

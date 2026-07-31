@@ -41,7 +41,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -58,14 +57,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -78,10 +74,8 @@ import com.example.appfunctions.agent.data.db.entities.ThreadEntity
 import com.example.appfunctions.agent.domain.AgentStatus
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
 import com.example.appfunctions.agent.ui.contracts.AgentDemoScreenLayout
-import com.example.appfunctions.agent.ui.layout.FormFactor
 import com.example.appfunctions.agent.ui.layout.rememberFormFactor
-import com.example.appfunctions.agent.ui.mobile.agentdemo.MobileAgentDemoLayout
-import com.example.appfunctions.agent.ui.tv.agentdemo.TvAgentDemoLayout
+import com.example.appfunctions.agent.ui.layout.resolveAgentDemoLayout
 
 @Composable
 fun AgentDemoScreen(viewModel: AgentDemoViewModel = hiltViewModel()) {
@@ -96,12 +90,7 @@ fun AgentDemoContent(
     onEvent: (AgentUiEvent) -> Unit,
     initialSidePanelVisible: Boolean = false,
 ) {
-    val formFactor = rememberFormFactor()
-    val layout: AgentDemoScreenLayout =
-        when (formFactor) {
-            FormFactor.TV -> TvAgentDemoLayout
-            FormFactor.WEAR, FormFactor.AUTO, FormFactor.XR, FormFactor.MOBILE -> MobileAgentDemoLayout
-        }
+    val layout: AgentDemoScreenLayout = rememberFormFactor().resolveAgentDemoLayout()
 
     layout.Content(
         uiState = uiState,
@@ -124,6 +113,7 @@ fun MessageBubble(
     isValidAction: Boolean,
     installedApps: List<AppInfo>,
     showAppFunctionDebugDetails: Boolean = true,
+    enableTextSelection: Boolean = true,
     onConfirmAction: (String) -> Unit,
 ) {
     val alignment = if (message.role == MessageRole.USER) Alignment.End else Alignment.Start
@@ -141,7 +131,6 @@ fun MessageBubble(
             else -> MaterialTheme.colorScheme.onSurface
         }
 
-    val isTv = rememberFormFactor() == FormFactor.TV
     val parsedData =
         remember(message.textContent) {
             parseMessageContent(message.textContent)
@@ -210,13 +199,7 @@ fun MessageBubble(
                                 MaterialTheme.typography.bodyMedium
                             }
 
-                        if (isTv) {
-                            Text(
-                                text = cleanContentText,
-                                color = textColor,
-                                style = typographyStyle,
-                            )
-                        } else {
+                        if (enableTextSelection) {
                             val annotatedText =
                                 remember(cleanContentText, installedApps) {
                                     formatMessageText(cleanContentText, installedApps)
@@ -229,6 +212,12 @@ fun MessageBubble(
                                     style = typographyStyle,
                                 )
                             }
+                        } else {
+                            Text(
+                                text = cleanContentText,
+                                color = textColor,
+                                style = typographyStyle,
+                            )
                         }
                     }
                 }
