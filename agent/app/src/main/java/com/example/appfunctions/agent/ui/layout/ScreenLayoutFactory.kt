@@ -23,16 +23,36 @@ import com.example.appfunctions.agent.ui.mobile.agentdemo.MobileAgentDemoLayout
 import com.example.appfunctions.agent.ui.mobile.agentdemo.MobileConnectedAppsLayout
 import com.example.appfunctions.agent.ui.mobile.agentdemo.MobileSettingsLayout
 import com.example.appfunctions.agent.ui.mobile.debugging.MobileDebuggingLayout
+import com.example.appfunctions.agent.ui.tv.agentdemo.TvAgentDemoLayout
+import com.example.appfunctions.agent.ui.tv.agentdemo.TvConnectedAppsLayout
+import com.example.appfunctions.agent.ui.tv.agentdemo.TvSettingsLayout
+import com.example.appfunctions.agent.ui.tv.debugging.TvDebuggingLayout
 
 /**
  * Centralized layout factory that resolves screen layout contracts for specific form factors.
  * This pattern decouples screen routers from explicit form factor resolution conditionals,
  * allowing new device form factors (e.g., Wear OS, Android XR, Auto) to be added cleanly.
  */
-fun FormFactor.resolveAgentDemoLayout(): AgentDemoScreenLayout = MobileAgentDemoLayout
+fun FormFactor.resolveAgentDemoLayout(): AgentDemoScreenLayout =
+    when (this) {
+        FormFactor.TV -> TvAgentDemoLayout
+        FormFactor.MOBILE, FormFactor.WEAR, FormFactor.AUTO, FormFactor.XR -> MobileAgentDemoLayout
+    }
 
-fun FormFactor.resolveConnectedAppsLayout(): ConnectedAppsScreenLayout = MobileConnectedAppsLayout
+fun FormFactor.resolveConnectedAppsLayout(): ConnectedAppsScreenLayout =
+    when (this) {
+        FormFactor.TV -> TvConnectedAppsLayout
+        FormFactor.MOBILE, FormFactor.WEAR, FormFactor.AUTO, FormFactor.XR -> MobileConnectedAppsLayout
+    }
 
-fun FormFactor.resolveSettingsLayout(): SettingsScreenLayout = MobileSettingsLayout
+fun FormFactor.resolveSettingsLayout(): SettingsScreenLayout =
+    when (this) {
+        FormFactor.TV -> TvSettingsLayout
+        FormFactor.MOBILE, FormFactor.WEAR, FormFactor.AUTO, FormFactor.XR -> MobileSettingsLayout
+    }
 
-fun FormFactor.resolveDebuggingLayout(): DebuggingScreenLayout = MobileDebuggingLayout
+fun FormFactor.resolveDebuggingLayout(): DebuggingScreenLayout =
+    when (this) {
+        FormFactor.TV -> TvDebuggingLayout
+        FormFactor.MOBILE, FormFactor.WEAR, FormFactor.AUTO, FormFactor.XR -> MobileDebuggingLayout
+    }

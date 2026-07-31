@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -23,6 +25,20 @@ plugins {
     alias(libs.plugins.oss.licenses)
 }
 
+val localProperties =
+    Properties().apply {
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localPropertiesFile.inputStream().use { load(it) }
+        }
+    }
+
+val geminiApiKey: String =
+    (project.findProperty("GEMINI_API_KEY") as? String)?.takeIf { it.isNotBlank() }
+        ?: localProperties.getProperty("GEMINI_API_KEY")?.takeIf { it.isNotBlank() }
+        ?: System.getenv("GEMINI_API_KEY")?.takeIf { it.isNotBlank() }
+        ?: ""
+
 android {
     namespace = "com.example.appfunctions.agent"
     compileSdk {
@@ -31,7 +47,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.appfunctions.agent"
-        minSdk = 36
+        minSdk = 33
         targetSdk = 37
         versionCode = 1
         versionName = "0.0.0"
@@ -39,12 +55,11 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("Boolean", "IS_RETAIL", "false")
-        buildConfigField("String", "GEMINI_API_KEY", "\"\"")
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     buildTypes {
         release {
-            @Suppress("UnstableApiUsage")
             optimization {
                 enable = true
             }
@@ -62,16 +77,16 @@ android {
             buildConfigField("Boolean", "IS_RETAIL", "true")
 
             val containsRetail =
-                gradle.startParameter.taskNames.any {
+                project.gradle.startParameter.taskNames.any {
                     it.contains("Retail", ignoreCase = true)
                 }
-            val apiKey = project.findProperty("GEMINI_API_KEY") as? String ?: ""
-            if (containsRetail && apiKey.isEmpty()) {
+            if (containsRetail && geminiApiKey.isEmpty()) {
                 throw GradleException(
-                    "GEMINI_API_KEY project property is required for retail builds. Pass it using -PGEMINI_API_KEY=your_key",
+                    "GEMINI_API_KEY is required for retail builds. " +
+                        "Define it in local.properties or pass it using -PGEMINI_API_KEY=your_key",
                 )
             }
-            buildConfigField("String", "GEMINI_API_KEY", "\"$apiKey\"")
+            buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
         }
     }
     buildFeatures {
@@ -127,6 +142,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.tv.material3)
     implementation(libs.coil.compose)
     implementation(libs.hilt.android)
     implementation(libs.kotlinx.serialization.json)

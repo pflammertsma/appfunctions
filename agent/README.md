@@ -2,12 +2,33 @@
 
 AppFunctions Testing Agent is a testing and debugging tool for Android AppFunctions.
 It allows developers to troubleshoot integration issues, manually invoke functions with
-deterministic input, and test functions using an LLM-based agent.
+deterministic input, and test functions using an LLM-based agent. It supports both
+mobile and Android TV form factors, automatically adapting its layout.
 
 ## Prerequisites
 
 -   **ADB**: Ensure you have `adb` installed and in your PATH.
 -   **Device/Emulator**: A connected Android device or emulator with developer options enabled.
+
+## Project Structure & Adaptive UI
+
+Unlike other samples in this repository, the Testing Agent is structured as a **single adaptive `app` module**. It is designed to run on both **Mobile** and **Android TV** form factors, automatically adapting its layout and focus behavior at runtime based on the detected device.
+
+### Core Screens
+
+#### 1. Agent Demo (LLM Agent Chat)
+An interactive chat interface where you can evaluate AppFunctions using natural language via an LLM.
+
+| Mobile | Android TV |
+| :---: | :---: |
+| <img src="docs/images/mobile_demo.png" height="450" alt="Mobile Agent Demo"> | <img src="docs/images/tv_screenshot.png" height="450" alt="TV Agent Demo"> |
+
+#### 2. Manual Debugging (Function invocation)
+A deterministic testing interface that discovers installed apps and their registered AppFunctions, allowing you to fill in parameters and invoke them manually.
+
+| Mobile | Android TV |
+| :---: | :---: |
+| <img src="docs/images/mobile_debugging.png" height="450" alt="Mobile Debugging"> | <img src="docs/images/tv_debugging.png" height="450" alt="TV Debugging"> |
 
 ## Building and Running
 
