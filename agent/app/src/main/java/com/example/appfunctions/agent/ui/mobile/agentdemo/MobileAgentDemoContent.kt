@@ -82,12 +82,20 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -563,8 +571,33 @@ fun MobileAgentDemoLoadedScreen(
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .focusRequester(inputFocusRequester),
-                            shape = CircleShape,
+                                    .focusRequester(inputFocusRequester)
+                                    .onPreviewKeyEvent { keyEvent ->
+                                        if (keyEvent.type == KeyEventType.KeyDown &&
+                                            (keyEvent.key == Key.Enter || keyEvent.key == Key.NumPadEnter)
+                                        ) {
+                                            if (keyEvent.isCtrlPressed || keyEvent.isShiftPressed) {
+                                                val selection = messageText.selection
+                                                val text = messageText.text
+                                                val newText =
+                                                    text.substring(0, selection.min) + "\n" + text.substring(selection.max)
+                                                val newSelection = TextRange(selection.min + 1)
+                                                messageText =
+                                                    messageText.copy(
+                                                        text = newText,
+                                                        selection = newSelection,
+                                                    )
+                                                true
+                                            } else {
+                                                sendMessage()
+                                                true
+                                            }
+                                        } else {
+                                            false
+                                        }
+                                    },
+                            maxLines = 5,
+                            shape = RoundedCornerShape(24.dp),
                             colors =
                                 OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = MaterialTheme.colorScheme.surfaceBright,

@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
@@ -49,12 +50,15 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /**
@@ -64,6 +68,7 @@ import androidx.compose.ui.unit.dp
  * High contrast focus stroke border and scale boost when focused.
  * Pressing D-Pad Center (or click) enters editing mode and focuses the underlying OutlinedTextField.
  * Pressing Back or Enter/Done exits editing mode, hides the keyboard, and restores D-Pad navigation.
+ * Plain Enter sends/submits, while Shift+Enter or Ctrl+Enter inserts a new line.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -74,6 +79,7 @@ fun TvSurfaceTextField(
     modifier: Modifier = Modifier,
     label: String? = null,
     singleLine: Boolean = true,
+    maxLines: Int = if (singleLine) 1 else 5,
     trailingIcon: @Composable (() -> Unit)? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
@@ -115,6 +121,12 @@ fun TvSurfaceTextField(
     }
 
     val targetHeight = if (label != null) 64.dp else 56.dp
+    val heightModifier =
+        if (singleLine) {
+            Modifier.height(targetHeight)
+        } else {
+            Modifier.heightIn(min = targetHeight, max = 160.dp)
+        }
 
     if (isEditing) {
         var tfValue by remember {
@@ -138,6 +150,7 @@ fun TvSurfaceTextField(
                 onValueChange(newTfValue.text)
             },
             singleLine = singleLine,
+            maxLines = maxLines,
             label = label?.let { { Text(it) } },
             placeholder = { Text(placeholder) },
             trailingIcon = trailingIcon,
@@ -171,7 +184,7 @@ fun TvSurfaceTextField(
                 ),
             modifier =
                 modifier
-                    .height(targetHeight)
+                    .then(heightModifier)
                     .focusRequester(textFieldFocusRequester)
                     .onFocusChanged { focusState ->
                         if (tfFocused && !focusState.isFocused) {
@@ -185,8 +198,19 @@ fun TvSurfaceTextField(
                                 stopEditing()
                             }
                             true
-                        } else when (keyEvent.key) {
-                            Key.Enter, Key.NumPadEnter -> {
+                        } else if (keyEvent.key == Key.Enter || keyEvent.key == Key.NumPadEnter) {
+                            if (keyEvent.isCtrlPressed || keyEvent.isShiftPressed) {
+                                if (keyEvent.type == KeyEventType.KeyDown) {
+                                    val selection = tfValue.selection
+                                    val text = tfValue.text
+                                    val newText =
+                                        text.substring(0, selection.min) + "\n" + text.substring(selection.max)
+                                    val newSelection = TextRange(selection.min + 1)
+                                    tfValue = tfValue.copy(text = newText, selection = newSelection)
+                                    onValueChange(newText)
+                                }
+                                true
+                            } else {
                                 if (keyEvent.type == KeyEventType.KeyUp) {
                                     val actionScope =
                                         object : androidx.compose.foundation.text.KeyboardActionScope {
@@ -201,7 +225,8 @@ fun TvSurfaceTextField(
                                 }
                                 true
                             }
-                            else -> false
+                        } else {
+                            false
                         }
                     },
         )
@@ -213,7 +238,7 @@ fun TvSurfaceTextField(
             onClick = { isEditing = true },
             modifier =
                 modifier
-                    .height(targetHeight)
+                    .then(heightModifier)
                     .scale(scale)
                     .focusRequester(surfaceFocusRequester)
                     .onFocusChanged { isFocused = it.isFocused },
@@ -230,7 +255,7 @@ fun TvSurfaceTextField(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -250,6 +275,8 @@ fun TvSurfaceTextField(
                                 else -> MaterialTheme.colorScheme.onSurfaceVariant
                             },
                         style = MaterialTheme.typography.bodyLarge,
+                        maxLines = maxLines,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 trailingIcon?.invoke()

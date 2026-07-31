@@ -323,7 +323,9 @@ fun TvAgentDemoLoadedScreen(
                         value = messageText.text,
                         onValueChange = { messageText = TextFieldValue(it) },
                         placeholder = stringResource(R.string.agent_demo_ask_agent),
-                        shape = CircleShape,
+                        singleLine = false,
+                        maxLines = 5,
+                        shape = RoundedCornerShape(24.dp),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { sendMessage() }),
                         modifier =
