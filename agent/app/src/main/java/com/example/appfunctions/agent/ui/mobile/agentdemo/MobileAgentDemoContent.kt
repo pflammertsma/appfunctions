@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -287,8 +288,9 @@ fun MobileAgentDemoLoadedScreen(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .imePadding()
-                    .padding(top = paddingValues.calculateTopPadding()),
+                    .padding(top = paddingValues.calculateTopPadding())
+                    .consumeWindowInsets(paddingValues)
+                    .imePadding(),
         ) {
             if (isWideScreen) {
                 AnimatedVisibility(

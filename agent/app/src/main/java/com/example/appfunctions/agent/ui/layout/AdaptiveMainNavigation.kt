@@ -223,7 +223,15 @@ fun AdaptiveMainNavigation(
                 }
             },
         ) { paddingValues ->
-            content(Modifier.padding(paddingValues))
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .consumeWindowInsets(paddingValues),
+            ) {
+                content(Modifier.fillMaxSize())
+            }
         }
     }
 }
