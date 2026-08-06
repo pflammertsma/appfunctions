@@ -15,7 +15,6 @@
  */
 package com.example.appfunctions.agent.ui.tv.agentdemo
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -32,10 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,8 +45,11 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.tv.material3.IconButton
+import androidx.tv.material3.IconButtonDefaults
 import coil.compose.rememberAsyncImagePainter
 import com.example.appfunctions.agent.R
+import com.example.appfunctions.agent.ui.components.TvSurfaceCard
 import com.example.appfunctions.agent.ui.contracts.ConnectedAppsScreenLayout
 import com.example.appfunctions.agent.ui.screens.agentdemo.ConnectedAppsUiState
 
@@ -78,89 +77,103 @@ fun TvConnectedAppsContent(
     onToggleApp: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = Color.Unspecified,
-        topBar = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+    Column(
+        modifier =
+            modifier
+                .fillMaxSize()
+                .padding(start = 80.dp, top = 16.dp, end = 24.dp, bottom = 24.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 16.dp),
+        ) {
+            var isBackFocused by remember { mutableStateOf(false) }
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.onFocusChanged { isBackFocused = it.isFocused },
+                colors =
+                    IconButtonDefaults.colors(
+                        containerColor = Color.Transparent,
+                        focusedContainerColor = MaterialTheme.colorScheme.onSurface,
+                    ),
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = stringResource(id = R.string.connected_apps_title),
-                    style = MaterialTheme.typography.headlineMedium,
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint =
+                        if (isBackFocused) {
+                            MaterialTheme.colorScheme.inverseOnSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                 )
             }
-        },
-    ) { paddingValues ->
-        Column(
-            modifier =
-                Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 24.dp),
-        ) {
-            LazyColumn {
-                items(
-                    items = uiState.connectedApps,
-                    key = { app -> app.packageName },
-                ) { app ->
-                    var isRowFocused by remember { mutableStateOf(false) }
-                    Surface(
-                        onClick = { onToggleApp(app.packageName, !app.isConnected) },
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = stringResource(id = R.string.connected_apps_title),
+                style = MaterialTheme.typography.headlineMedium,
+            )
+        }
+
+        LazyColumn {
+            items(
+                items = uiState.connectedApps,
+                key = { app -> app.packageName },
+            ) { app ->
+                TvSurfaceCard(
+                    onClick = { onToggleApp(app.packageName, !app.isConnected) },
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    unfocusedBorder = null,
+                ) { isRowFocused ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .onFocusChanged { isRowFocused = it.isFocused },
-                        shape = MaterialTheme.shapes.medium,
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        border =
-                            if (isRowFocused) {
-                                BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                            } else {
-                                null
-                            },
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                        ) {
-                            if (app.icon != null) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(app.icon),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(40.dp),
-                                )
-                            } else {
-                                Box(modifier = Modifier.size(40.dp).background(Color.Gray))
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = app.label,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                )
-                                if (!app.description.isNullOrEmpty()) {
-                                    Text(
-                                        text = app.description,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                            Switch(
-                                checked = app.isConnected,
-                                onCheckedChange = null,
+                        if (app.icon != null) {
+                            Image(
+                                painter = rememberAsyncImagePainter(app.icon),
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
                             )
+                        } else {
+                            Box(modifier = Modifier.size(40.dp).background(Color.Gray))
                         }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = app.label,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color =
+                                    if (isRowFocused) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurface
+                                    },
+                            )
+                            if (!app.description.isNullOrEmpty()) {
+                                Text(
+                                    text = app.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color =
+                                        if (isRowFocused) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = app.isConnected,
+                            onCheckedChange = { connected ->
+                                onToggleApp(app.packageName, connected)
+                            },
+                        )
                     }
                 }
             }

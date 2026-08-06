@@ -23,10 +23,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.appfunctions.agent.domain.appfunction.ConnectedAppInfo
 import com.example.appfunctions.agent.ui.contracts.ConnectedAppsScreenLayout
-import com.example.appfunctions.agent.ui.layout.FormFactor
 import com.example.appfunctions.agent.ui.layout.rememberFormFactor
-import com.example.appfunctions.agent.ui.mobile.agentdemo.MobileConnectedAppsLayout
-import com.example.appfunctions.agent.ui.tv.agentdemo.TvConnectedAppsLayout
+import com.example.appfunctions.agent.ui.layout.resolveConnectedAppsLayout
 
 /** Stateful composable for the Connected Apps screen. */
 @Composable
@@ -51,12 +49,7 @@ fun ConnectedAppsScreenContent(
     onBack: () -> Unit,
     onToggleApp: (String, Boolean) -> Unit,
 ) {
-    val formFactor = rememberFormFactor()
-    val layout: ConnectedAppsScreenLayout =
-        when (formFactor) {
-            FormFactor.TV -> TvConnectedAppsLayout
-            FormFactor.WEAR, FormFactor.AUTO, FormFactor.XR, FormFactor.MOBILE -> MobileConnectedAppsLayout
-        }
+    val layout: ConnectedAppsScreenLayout = rememberFormFactor().resolveConnectedAppsLayout()
 
     layout.Content(
         uiState = uiState,
