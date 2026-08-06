@@ -369,12 +369,14 @@ class AgentOrchestrator
                     }
 
                 if (matchingTool == null) {
-                    completeMessageWithError(
-                        message.messageId,
-                        message.threadId,
-                        "Tool not found: ${toolCall.functionId}",
+                    results.add(
+                        ToolOutput(
+                            functionId = toolCall.functionId,
+                            callId = toolCall.callId,
+                            result = "Error: Tool or function '${toolCall.functionId}' not found in package '${toolCall.packageName}'.",
+                        ),
                     )
-                    return ExecuteToolCallsResult.Error
+                    continue
                 }
 
                 val rawConvertedInputs = toolCall.arguments.filterValues { it != null } as Map<String, Any>
@@ -388,12 +390,14 @@ class AgentOrchestrator
                             )
                         }
                     } catch (e: Exception) {
-                        completeMessageWithError(
-                            message.messageId,
-                            message.threadId,
-                            "Failed to download remote file reference: ${e.message}",
+                        results.add(
+                            ToolOutput(
+                                functionId = toolCall.functionId,
+                                callId = toolCall.callId,
+                                result = "Error: Failed to download remote file reference: ${e.message}",
+                            ),
                         )
-                        return ExecuteToolCallsResult.Error
+                        continue
                     }
 
                 grantContentUriPermissionsRecursively(context, toolCall.packageName, convertedInputs)
@@ -420,12 +424,14 @@ class AgentOrchestrator
                         )
                     }
                 if (appFunctionDataResult.isFailure) {
-                    completeMessageWithError(
-                        message.messageId,
-                        message.threadId,
-                        "Failed to convert arguments for ${toolCall.functionId}\n ${appFunctionDataResult.exceptionOrNull()}",
+                    results.add(
+                        ToolOutput(
+                            functionId = toolCall.functionId,
+                            callId = toolCall.callId,
+                            result = "Error: Failed to convert arguments for '${toolCall.functionId}': ${appFunctionDataResult.exceptionOrNull()?.message}",
+                        ),
                     )
-                    return ExecuteToolCallsResult.Error
+                    continue
                 }
 
                 val executionResult =
