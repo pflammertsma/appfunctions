@@ -57,6 +57,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -90,6 +91,8 @@ class AgentOrchestrator
         /** The current status of the agent. */
         val status: StateFlow<AgentStatus> = _status.asStateFlow()
 
+        private val processedMessageIds = MutableStateFlow<Set<String>>(emptySet())
+
         /**
          * Observes messages for a specific thread and processes any pending agent responses. This
          * method suspends and collects messages until cancelled.
@@ -102,9 +105,21 @@ class AgentOrchestrator
                     ).stateIn(this, SharingStarted.Eagerly, null)
 
                 observePendingMessagesUseCase(threadId).collect { message ->
+                    Log.d("AgentOrchestrator", "observePendingMessagesUseCase emitted: messageId=${message?.messageId}, status=${message?.processingStatus}, content=${message?.textContent}")
                     if (message != null) {
-                        val thread = threadStateFlow.filterNotNull().first()
-                        processMessage(message, thread)
+                        var isNewMessage = false
+                        processedMessageIds.update { set ->
+                            if (!set.contains(message.messageId)) {
+                                isNewMessage = true
+                                set + message.messageId
+                            } else {
+                                set
+                            }
+                        }
+                        if (isNewMessage) {
+                            val thread = threadStateFlow.filterNotNull().first()
+                            processMessage(message, thread)
+                        }
                     }
                 }
             }
@@ -113,6 +128,7 @@ class AgentOrchestrator
             message: MessageEntity,
             thread: ThreadEntity,
         ) {
+            Log.d("AgentOrchestrator", "START processMessage: messageId=${message.messageId}, text='${message.textContent}', threadId=${thread.threadId}")
             _status.value = AgentStatus.Thinking
 
             try {
@@ -314,8 +330,7 @@ class AgentOrchestrator
                                             executedToolCalls,
                                             executedToolOutputs,
                                         )
-                                    executedToolCalls.clear()
-                                    executedToolOutputs.clear()
+                                    Log.d("AgentOrchestrator", "handleLlmResponse: Posting INTERIM assistant message: '$finalContent'")
                                     sendMessageUseCase(
                                         threadId = message.threadId,
                                         role = MessageRole.ASSISTANT,
@@ -358,6 +373,7 @@ class AgentOrchestrator
                             val finalContent = appendToolCallsHint(textContent, executedToolCalls, executedToolOutputs)
                             executedToolCalls.clear()
                             executedToolOutputs.clear()
+                            Log.d("AgentOrchestrator", "handleLlmResponse: Posting FINAL assistant message: '$finalContent'")
                             sendMessageUseCase(
                                 threadId = message.threadId,
                                 role = MessageRole.ASSISTANT,
