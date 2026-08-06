@@ -261,8 +261,7 @@ fun TvAgentDemoLoadedScreen(
                         Modifier
                             .weight(1f)
                             .fillMaxWidth()
-                            .padding(start = 8.dp, end = 24.dp)
-                            .clip(RoundedCornerShape(16.dp)),
+                            .padding(start = 8.dp, end = 24.dp),
                 ) {
                     if (uiState.status != AgentStatus.Idle) {
                         item {
@@ -278,7 +277,8 @@ fun TvAgentDemoLoadedScreen(
                         key = { it.messageId },
                     ) { message ->
                         val (cleanText, toolCalls) = parseMessageContent(message.textContent)
-                        val shouldRenderAppFunctionsInline = toolCalls.isNotEmpty()
+                        val shouldRenderAppFunctionsInline =
+                            uiState.isAppFunctionDebuggingEnabled && toolCalls.isNotEmpty()
                         Column {
                             if (shouldRenderAppFunctionsInline) {
                                 toolCalls.forEach { toolCall ->

@@ -73,9 +73,13 @@ import com.example.appfunctions.agent.data.db.entities.MessageRole
 import com.example.appfunctions.agent.data.db.entities.ThreadEntity
 import com.example.appfunctions.agent.domain.AgentStatus
 import com.example.appfunctions.agent.domain.appfunction.AppInfo
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.example.appfunctions.agent.ui.contracts.AgentDemoScreenLayout
 import com.example.appfunctions.agent.ui.layout.rememberFormFactor
 import com.example.appfunctions.agent.ui.layout.resolveAgentDemoLayout
+import com.mikepenz.markdown.m3.Markdown
+import org.json.JSONObject
 
 @Composable
 fun AgentDemoScreen(viewModel: AgentDemoViewModel = hiltViewModel()) {
@@ -192,32 +196,35 @@ fun MessageBubble(
                     }
 
                     if (cleanContentText.isNotEmpty()) {
-                        val typographyStyle =
-                            if (message.role == MessageRole.USER) {
-                                MaterialTheme.typography.bodyLarge
-                            } else {
-                                MaterialTheme.typography.bodyMedium
-                            }
+                        if (message.role == MessageRole.USER) {
+                            if (enableTextSelection) {
+                                val annotatedText =
+                                    remember(cleanContentText, installedApps) {
+                                        formatMessageText(cleanContentText, installedApps)
+                                    }
 
-                        if (enableTextSelection) {
-                            val annotatedText =
-                                remember(cleanContentText, installedApps) {
-                                    formatMessageText(cleanContentText, installedApps)
+                                SelectionContainer {
+                                    Text(
+                                        text = annotatedText,
+                                        color = textColor,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                    )
                                 }
-
-                            SelectionContainer {
+                            } else {
                                 Text(
-                                    text = annotatedText,
+                                    text = cleanContentText,
                                     color = textColor,
-                                    style = typographyStyle,
+                                    style = MaterialTheme.typography.bodyLarge,
                                 )
                             }
                         } else {
-                            Text(
-                                text = cleanContentText,
-                                color = textColor,
-                                style = typographyStyle,
-                            )
+                            if (enableTextSelection) {
+                                SelectionContainer {
+                                    Markdown(content = cleanContentText)
+                                }
+                            } else {
+                                Markdown(content = cleanContentText)
+                            }
                         }
                     }
                 }
@@ -515,6 +522,36 @@ fun parseMessageContent(text: String): Pair<String, List<ParsedAppFunctionCall>>
     var cleanText = text
     matches.forEach { match ->
         cleanText = cleanText.replace(match.value, "")
+        try {
+            val jsonString = match.groupValues[1]
+            val json = JSONObject(jsonString)
+            val pkg = json.optString("package", "")
+            val fn = json.optString("function", "")
+            val response = if (json.has("response")) json.optString("response") else null
+
+            val argsMap = mutableMapOf<String, Any?>()
+            if (json.has("args")) {
+                val argsObj = json.optJSONObject("args")
+                if (argsObj != null) {
+                    val keys = argsObj.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        argsMap[key] = argsObj.opt(key)
+                    }
+                }
+            }
+
+            calls.add(
+                ParsedAppFunctionCall(
+                    packageName = pkg,
+                    functionId = fn,
+                    arguments = argsMap,
+                    response = response,
+                ),
+            )
+        } catch (e: Exception) {
+            // Ignore malformed JSON matches
+        }
     }
 
     return Pair(cleanText.trim(), calls)
@@ -535,25 +572,61 @@ fun AppFunctionCallHintCard(
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = modifier.fillMaxWidth(),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            appInfo?.icon?.let {
-                Image(
-                    bitmap = it.toBitmap().asImageBitmap(),
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // 1. FX Icon (ic_rounded_function, tinted blue)
+                Icon(
+                    painter = painterResource(R.drawable.ic_rounded_function),
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary,
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Column(modifier = Modifier.weight(1f)) {
+                Spacer(modifier = Modifier.width(6.dp))
+
+                // 2. App Icon
+                if (appInfo?.icon != null) {
+                    val bitmap =
+                        remember(appInfo.icon) {
+                            appInfo.icon.toBitmap(width = 48, height = 48).asImageBitmap()
+                        }
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+
+                // 3. Function ID
                 Text(
-                    text = "${appInfo?.label ?: call.packageName} → ${call.functionId}",
-                    style = MaterialTheme.typography.labelLarge,
+                    text = call.functionId,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
+                )
+            }
+            if (call.arguments.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                val argsStr = call.arguments.entries.joinToString(", ") { "${it.key}=${it.value}" }
+                Text(
+                    text = "Parameters: $argsStr",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (!call.response.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Result: ${call.response}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

@@ -58,6 +58,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
+import com.example.appfunctions.agent.ui.screens.agentdemo.AppFunctionCallHintCard
+import com.example.appfunctions.agent.ui.screens.agentdemo.parseMessageContent
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -336,14 +338,28 @@ fun MobileAgentDemoLoadedScreen(
                         items = uiState.messages.reversed(),
                         key = { message -> message.messageId },
                     ) { message ->
-                        MessageBubble(
-                            message = message,
-                            isValidAction =
-                                message.pendingIntentId in uiState.activePendingActionIds,
-                            installedApps = uiState.installedApps,
-                            showAppFunctionDebugDetails = uiState.isAppFunctionDebuggingEnabled,
-                            onConfirmAction = { onEvent(AgentUiEvent.OnConfirmAction(it)) },
-                        )
+                        val (cleanText, toolCalls) = parseMessageContent(message.textContent)
+                        val shouldRenderAppFunctionsInline =
+                            uiState.isAppFunctionDebuggingEnabled && toolCalls.isNotEmpty()
+                        Column {
+                            if (shouldRenderAppFunctionsInline) {
+                                toolCalls.forEach { toolCall ->
+                                    AppFunctionCallHintCard(
+                                        call = toolCall,
+                                        installedApps = uiState.installedApps,
+                                        modifier = Modifier.padding(bottom = 8.dp),
+                                    )
+                                }
+                            }
+                            MessageBubble(
+                                message = message.copy(textContent = cleanText),
+                                isValidAction =
+                                    message.pendingIntentId in uiState.activePendingActionIds,
+                                installedApps = uiState.installedApps,
+                                showAppFunctionDebugDetails = uiState.isAppFunctionDebuggingEnabled,
+                                onConfirmAction = { onEvent(AgentUiEvent.OnConfirmAction(it)) },
+                            )
+                        }
                     }
                 }
 
