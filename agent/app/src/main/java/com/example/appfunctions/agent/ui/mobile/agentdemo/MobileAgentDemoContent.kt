@@ -242,7 +242,7 @@ fun MobileAgentDemoLoadedScreen(
         }
     }
 
-    LaunchedEffect(uiState.messages.size) {
+    LaunchedEffect(uiState.messages.size, uiState.status) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(0)
         }

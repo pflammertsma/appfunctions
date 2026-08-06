@@ -201,9 +201,9 @@ fun TvAgentDemoLoadedScreen(
         }
     }
 
-    LaunchedEffect(uiState.messages.size) {
-        android.util.Log.d("TvDebug", "SCROLL TRIGGER: uiState.messages.size changed to ${uiState.messages.size}")
-        if (uiState.messages.isNotEmpty() && listState.firstVisibleItemIndex == 0) {
+    LaunchedEffect(uiState.messages.size, uiState.status) {
+        Log.d("TvDebug", "SCROLL TRIGGER: messages.size=${uiState.messages.size}, status=${uiState.status}")
+        if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(0)
         }
     }
@@ -316,6 +316,9 @@ fun TvAgentDemoLoadedScreen(
                         if (trimmedText.isNotEmpty()) {
                             onEvent(AgentUiEvent.OnSendMessage(trimmedText))
                             messageText = TextFieldValue("")
+                            coroutineScope.launch {
+                                listState.scrollToItem(0)
+                            }
                         }
                     }
 
