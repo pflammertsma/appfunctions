@@ -21,7 +21,10 @@ import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import org.json.JSONObject
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -1046,6 +1049,161 @@ fun formatMessageText(
         }
         if (lastIndex < text.length) {
             append(text.substring(lastIndex))
+        }
+    }
+}
+
+data class ParsedAppFunctionCall(
+    val packageName: String,
+    val functionId: String,
+    val arguments: Map<String, Any?>,
+    val response: String? = null,
+)
+
+fun parseMessageContent(text: String): Pair<String, List<ParsedAppFunctionCall>> {
+    val callRegex = Regex("@@AppFunctionCall:(.*?)@@")
+    val calls = mutableListOf<ParsedAppFunctionCall>()
+    val matches = callRegex.findAll(text)
+
+    var cleanText = text
+    matches.forEach { match ->
+        cleanText = cleanText.replace(match.value, "")
+        try {
+            val jsonString = match.groupValues[1]
+            val json = JSONObject(jsonString)
+            val pkg = json.optString("package", "")
+            val fn = json.optString("function", "")
+            val response = if (json.has("response")) json.optString("response") else null
+
+            val argsMap = mutableMapOf<String, Any?>()
+            if (json.has("args")) {
+                val argsObj = json.optJSONObject("args")
+                if (argsObj != null) {
+                    val keys = argsObj.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        argsMap[key] = argsObj.opt(key)
+                    }
+                }
+            }
+
+            calls.add(
+                ParsedAppFunctionCall(
+                    packageName = pkg,
+                    functionId = fn,
+                    arguments = argsMap,
+                    response = response,
+                ),
+            )
+        } catch (e: Exception) {
+            // Ignore malformed JSON matches
+        }
+    }
+
+    return Pair(cleanText.trim(), calls)
+}
+
+@Composable
+fun AppFunctionCallHintCard(
+    call: ParsedAppFunctionCall,
+    installedApps: List<AppInfo>,
+    modifier: Modifier = Modifier,
+) {
+    val appInfo =
+        remember(call.packageName, installedApps) {
+            installedApps.find { it.packageName == call.packageName }
+        }
+
+    val isErrorResult = call.response?.startsWith("Error:") == true
+
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color =
+            if (isErrorResult) {
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.85f)
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.60f)
+            },
+        border =
+            BorderStroke(
+                1.dp,
+                if (isErrorResult) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                },
+            ),
+        modifier = modifier.fillMaxWidth().padding(vertical = 4.dp),
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_rounded_function),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint =
+                        if (isErrorResult) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+
+                if (appInfo?.icon != null) {
+                    val bitmap =
+                        remember(appInfo.icon) {
+                            appInfo.icon.toBitmap(width = 48, height = 48).asImageBitmap()
+                        }
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+
+                Text(
+                    text = call.functionId,
+                    style = MaterialTheme.typography.labelMedium,
+                    color =
+                        if (isErrorResult) {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        },
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            if (call.arguments.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                val argsStr = call.arguments.entries.joinToString(", ") { "${it.key}=${it.value}" }
+                Text(
+                    text = "Parameters: $argsStr",
+                    style = MaterialTheme.typography.bodySmall,
+                    color =
+                        if (isErrorResult) {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f)
+                        },
+                )
+            }
+            if (!call.response.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Result: ${call.response}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color =
+                        if (isErrorResult) {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f)
+                        },
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
