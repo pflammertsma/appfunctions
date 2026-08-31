@@ -195,24 +195,15 @@ fun TvAgentDemoLoadedScreen(
     }
 
     LaunchedEffect(currentThreadId) {
-        android.util.Log.d("TvDebug", "SCROLL TRIGGER: currentThreadId changed to $currentThreadId")
         if (uiState.messages.isNotEmpty()) {
             listState.scrollToItem(0)
         }
     }
 
     LaunchedEffect(uiState.messages.size, uiState.status) {
-        Log.d("TvDebug", "SCROLL TRIGGER: messages.size=${uiState.messages.size}, status=${uiState.status}")
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(0)
         }
-    }
-
-    LaunchedEffect(listState) {
-        androidx.compose.runtime.snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
-            .collect { (index, offset) ->
-                android.util.Log.d("TvDebug", "TvAgentDemoContent: ListScrollState -> firstIndex=$index, offset=$offset")
-            }
     }
 
     LaunchedEffect(Unit) {
