@@ -16,7 +16,6 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          xmlns:appfn="http://schemas.android.com/apk/androidx.appfunctions"
           xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
@@ -26,11 +25,12 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
         android:name=".AppFunctionsApplication"
         android:allowBackup="true"
-        android:banner="@mipmap/ic_launcher"
+        android:banner="@drawable/tv_banner"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -41,7 +41,7 @@
 
         <activity
             android:name=".MainActivity"
-            android:banner="@mipmap/ic_launcher"
+            android:banner="@drawable/tv_banner"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

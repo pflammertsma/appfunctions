@@ -18,7 +18,6 @@ package com.example.appfunctions.agent.domain
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.util.Log
 import androidx.appfunctions.metadata.AppFunctionArrayTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionDataTypeMetadata
@@ -27,6 +26,7 @@ import androidx.appfunctions.metadata.AppFunctionObjectTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionParameterMetadata
 import androidx.appfunctions.metadata.AppFunctionReferenceTypeMetadata
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import com.example.appfunctions.agent.data.LlmProviderName
 import com.example.appfunctions.agent.data.SettingsRepository
 import com.example.appfunctions.agent.data.db.entities.MessageAttachment
@@ -57,6 +57,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -90,6 +91,8 @@ class AgentOrchestrator
         /** The current status of the agent. */
         val status: StateFlow<AgentStatus> = _status.asStateFlow()
 
+        private val processedMessageIds = MutableStateFlow<Set<String>>(emptySet())
+
         /**
          * Observes messages for a specific thread and processes any pending agent responses. This
          * method suspends and collects messages until cancelled.
@@ -102,9 +105,21 @@ class AgentOrchestrator
                     ).stateIn(this, SharingStarted.Eagerly, null)
 
                 observePendingMessagesUseCase(threadId).collect { message ->
+                    Log.d("AgentOrchestrator", "observePendingMessagesUseCase emitted: messageId=${message?.messageId}, status=${message?.processingStatus}, content=${message?.textContent}")
                     if (message != null) {
-                        val thread = threadStateFlow.filterNotNull().first()
-                        processMessage(message, thread)
+                        var isNewMessage = false
+                        processedMessageIds.update { set ->
+                            if (!set.contains(message.messageId)) {
+                                isNewMessage = true
+                                set + message.messageId
+                            } else {
+                                set
+                            }
+                        }
+                        if (isNewMessage) {
+                            val thread = threadStateFlow.filterNotNull().first()
+                            processMessage(message, thread)
+                        }
                     }
                 }
             }
@@ -113,6 +128,7 @@ class AgentOrchestrator
             message: MessageEntity,
             thread: ThreadEntity,
         ) {
+            Log.d("AgentOrchestrator", "START processMessage: messageId=${message.messageId}, text='${message.textContent}', threadId=${thread.threadId}")
             _status.value = AgentStatus.Thinking
 
             try {
@@ -186,11 +202,13 @@ class AgentOrchestrator
             var previousInteractionId = thread.latestInteractionId
             var currentToolOutputs = emptyList<ToolOutput>()
             var continueLoop = true
-            var currentInput = initialInput
             val capturedAttachments = mutableListOf<MessageAttachment>()
 
+            val executedToolCalls = mutableListOf<LlmResponsePart.ToolCall>()
+            val executedToolOutputs = mutableListOf<ToolOutput>()
+
             while (continueLoop) {
-                val llmInput = prepareLlmInput(currentToolOutputs, currentInput)
+                val llmInput = prepareLlmInput(currentToolOutputs, initialInput)
 
                 currentToolOutputs = emptyList()
                 val response =
@@ -205,7 +223,14 @@ class AgentOrchestrator
 
                 when (
                     val handleResult =
-                        handleLlmResponse(response, message, tools, capturedAttachments)
+                        handleLlmResponse(
+                            response,
+                            message,
+                            tools,
+                            capturedAttachments,
+                            executedToolCalls,
+                            executedToolOutputs,
+                        )
                 ) {
                     is HandleResult.Continue -> {
                         currentToolOutputs = handleResult.toolOutputs
@@ -259,6 +284,8 @@ class AgentOrchestrator
             message: MessageEntity,
             tools: List<AppFunctionMetadata>,
             capturedAttachments: MutableList<MessageAttachment>,
+            executedToolCalls: MutableList<LlmResponsePart.ToolCall>,
+            executedToolOutputs: MutableList<ToolOutput>,
         ): HandleResult {
             return when (response) {
                 is LlmResponse.Success -> {
@@ -277,8 +304,10 @@ class AgentOrchestrator
                     val textContent = textParts.joinToString("\n") { it.text }
 
                     if (toolCalls.isNotEmpty()) {
+                        executedToolCalls.addAll(toolCalls)
                         when (val toolResult = executeToolCalls(toolCalls, tools, message)) {
                             is ExecuteToolCallsResult.Success -> {
+                                executedToolOutputs.addAll(toolResult.toolOutputs)
                                 for (output in toolResult.toolOutputs) {
                                     runCatching {
                                         val json = JSONObject(output.result)
@@ -295,10 +324,17 @@ class AgentOrchestrator
                                     }
                                 }
                                 if (textContent.isNotEmpty()) {
+                                    val finalContent =
+                                        appendToolCallsHint(
+                                            textContent,
+                                            executedToolCalls,
+                                            executedToolOutputs,
+                                        )
+                                    Log.d("AgentOrchestrator", "handleLlmResponse: Posting INTERIM assistant message: '$finalContent'")
                                     sendMessageUseCase(
                                         threadId = message.threadId,
                                         role = MessageRole.ASSISTANT,
-                                        textContent = textContent,
+                                        textContent = finalContent,
                                         processingStatus = MessageProcessingStatus.PROCESSED,
                                     )
                                 }
@@ -313,10 +349,13 @@ class AgentOrchestrator
                                     toolResult.pendingIntentId,
                                     toolResult.pendingIntent,
                                 )
+                                val finalContent = appendToolCallsHint(textContent, executedToolCalls, executedToolOutputs)
+                                executedToolCalls.clear()
+                                executedToolOutputs.clear()
                                 sendMessageUseCase(
                                     threadId = message.threadId,
                                     role = MessageRole.ASSISTANT,
-                                    textContent = textContent,
+                                    textContent = finalContent,
                                     processingStatus = MessageProcessingStatus.PROCESSED,
                                     pendingIntentId = toolResult.pendingIntentId,
                                 )
@@ -324,15 +363,21 @@ class AgentOrchestrator
                             }
 
                             is ExecuteToolCallsResult.Error -> {
+                                executedToolCalls.clear()
+                                executedToolOutputs.clear()
                                 HandleResult.Stop
                             }
                         }
                     } else {
                         if (textContent.isNotEmpty() || capturedAttachments.isNotEmpty()) {
+                            val finalContent = appendToolCallsHint(textContent, executedToolCalls, executedToolOutputs)
+                            executedToolCalls.clear()
+                            executedToolOutputs.clear()
+                            Log.d("AgentOrchestrator", "handleLlmResponse: Posting FINAL assistant message: '$finalContent'")
                             sendMessageUseCase(
                                 threadId = message.threadId,
                                 role = MessageRole.ASSISTANT,
-                                textContent = textContent,
+                                textContent = finalContent,
                                 processingStatus = MessageProcessingStatus.PROCESSED,
                                 attachments = capturedAttachments,
                             )
@@ -349,9 +394,40 @@ class AgentOrchestrator
                         response.errorMessage,
                     )
                     _status.value = AgentStatus.Idle
+                    executedToolCalls.clear()
                     HandleResult.Stop
                 }
             }
+        }
+
+        private fun appendToolCallsHint(
+            textContent: String,
+            toolCalls: List<LlmResponsePart.ToolCall>,
+            toolOutputs: List<ToolOutput> = emptyList(),
+        ): String {
+            if (toolCalls.isEmpty()) return textContent
+            val sb = java.lang.StringBuilder(textContent)
+            for (toolCall in toolCalls) {
+                try {
+                    val output =
+                        toolOutputs.find {
+                            it.callId == toolCall.callId || (it.functionId == toolCall.functionId && it.result.isNotBlank())
+                        }
+                    val json =
+                        JSONObject().apply {
+                            put("package", toolCall.packageName)
+                            put("function", toolCall.functionId)
+                            put("args", JSONObject(toolCall.arguments))
+                            if (output != null) {
+                                put("response", output.result)
+                            }
+                        }
+                    sb.append(" @@AppFunctionCall:$json@@")
+                } catch (e: Exception) {
+                    Log.e("AgentOrchestrator", "Error serializing tool call to JSON", e)
+                }
+            }
+            return sb.toString()
         }
 
         private suspend fun executeToolCalls(
@@ -377,7 +453,10 @@ class AgentOrchestrator
                     return ExecuteToolCallsResult.Error
                 }
 
-                val rawConvertedInputs = toolCall.arguments.filterValues { it != null } as Map<String, Any>
+                val rawConvertedInputs =
+                    toolCall.arguments.mapNotNull { (key, value) ->
+                        value?.let { key to it }
+                    }.toMap()
                 val convertedInputs =
                     try {
                         withContext(Dispatchers.IO) {
@@ -401,7 +480,7 @@ class AgentOrchestrator
                 for (value in convertedInputs.values) {
                     if (value is String && value.startsWith("content://")) {
                         runCatching {
-                            val uri = Uri.parse(value)
+                            val uri = value.toUri()
                             context.grantUriPermission(
                                 toolCall.packageName,
                                 uri,
@@ -447,7 +526,7 @@ class AgentOrchestrator
                     }
 
                     is ExecuteAppFunctionResult.PendingIntentAction -> {
-                        val pendingIntentId = java.util.UUID.randomUUID().toString()
+                        val pendingIntentId = UUID.randomUUID().toString()
                         return ExecuteToolCallsResult.PendingIntentAction(
                             pendingIntentId,
                             executionResult.pendingIntent,
@@ -614,7 +693,7 @@ class AgentOrchestrator
                 is String -> {
                     if (value.startsWith("content://")) {
                         runCatching {
-                            val uri = Uri.parse(value)
+                            val uri = value.toUri()
                             context.grantUriPermission(
                                 targetPackageName,
                                 uri,

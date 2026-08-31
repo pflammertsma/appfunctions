@@ -66,6 +66,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -74,7 +75,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.appfunctions.agent.R
-import com.example.appfunctions.agent.ui.layout.isTvFormFactor
 import com.example.appfunctions.agent.ui.theme.GoogleSansCodeFontFamily
 
 @Composable
@@ -99,21 +99,22 @@ fun AppFunctionItem(
                 },
         )
 
-    val isTv = isTvFormFactor()
     var isCardFocused by remember { mutableStateOf(false) }
+    val cardScale by animateFloatAsState(if (isCardFocused) 1.02f else 1.0f, label = "cardScale")
 
     Surface(
         modifier =
             modifier
                 .fillMaxWidth()
-                .onFocusChanged { isCardFocused = it.hasFocus },
-        tonalElevation = tonalElevation,
+                .scale(cardScale)
+                .onFocusChanged { isCardFocused = it.isFocused },
+        tonalElevation = if (isCardFocused) 8.dp else tonalElevation,
         shadowElevation = shadowElevation,
         shape = MaterialTheme.shapes.large,
-        color = surfaceColor,
+        color = if (isCardFocused) MaterialTheme.colorScheme.surfaceBright else surfaceColor,
         border =
-            if (isTv && isCardFocused) {
-                BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+            if (isCardFocused) {
+                BorderStroke(2.5.dp, MaterialTheme.colorScheme.primary)
             } else {
                 BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             },

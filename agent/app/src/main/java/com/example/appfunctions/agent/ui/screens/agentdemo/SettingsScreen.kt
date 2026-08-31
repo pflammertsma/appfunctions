@@ -44,12 +44,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.appfunctions.agent.R
 import com.example.appfunctions.agent.data.ServiceTier
 import com.example.appfunctions.agent.ui.contracts.SettingsScreenLayout
-import com.example.appfunctions.agent.ui.layout.FormFactor
 import com.example.appfunctions.agent.ui.layout.rememberFormFactor
-import com.example.appfunctions.agent.ui.mobile.agentdemo.MobileSettingsLayout
-import com.example.appfunctions.agent.ui.tv.agentdemo.TvSettingsLayout
+import com.example.appfunctions.agent.ui.layout.resolveSettingsLayout
 import com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity
-import kotlin.OptIn
 
 @Composable
 fun SettingsScreen(
@@ -83,12 +80,7 @@ fun SettingsScreenContent(
     onOpenLicenses: () -> Unit,
     onNavigateToConnectedApps: () -> Unit,
 ) {
-    val formFactor = rememberFormFactor()
-    val layout: SettingsScreenLayout =
-        when (formFactor) {
-            FormFactor.TV -> TvSettingsLayout
-            FormFactor.WEAR, FormFactor.AUTO, FormFactor.XR, FormFactor.MOBILE -> MobileSettingsLayout
-        }
+    val layout: SettingsScreenLayout = rememberFormFactor().resolveSettingsLayout()
 
     layout.Content(
         geminiApiKeyState = geminiApiKeyState,
